@@ -1,0 +1,28 @@
+# Build
+target/
+*.class
+*.jar
+!**/src/**/*.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# rs-clob-client 仅作为参考源，不纳入本项目仓库
+rs-clob-client/
+
+# 本地环境变量
+.env
+*.local

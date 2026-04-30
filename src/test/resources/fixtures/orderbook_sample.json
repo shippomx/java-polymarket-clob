@@ -1,0 +1,17 @@
+{
+  "market": "0xaabbccddeeff00112233445566778899aabbccddeeff00112233445566778899",
+  "asset_id": "1234567890",
+  "timestamp": "1700000000000",
+  "hash": "deadbeef",
+  "bids": [
+    {"price": "0.49", "size": "100"},
+    {"price": "0.48", "size": "250"}
+  ],
+  "asks": [
+    {"price": "0.51", "size": "80"}
+  ],
+  "min_order_size": "5",
+  "neg_risk": false,
+  "tick_size": "0.01",
+  "last_trade_price": "0.50"
+}
