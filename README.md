@@ -4,7 +4,7 @@
 [![Maven](https://img.shields.io/badge/build-maven-blue.svg)](https://maven.apache.org/)
 [![Status](https://img.shields.io/badge/status-0.1.0--SNAPSHOT-yellow.svg)]()
 
-Polymarket CLOB（中央限价订单簿）API 的 Java 17 SDK。与官方 [`py-clob-client`](https://github.com/Polymarket/py-clob-client) 与 [`rs-clob-client`](https://github.com/Polymarket/rs-clob-client) 行为对齐，覆盖：
+Polymarket CLOB（中央限价订单簿）API 的 Java 17 SDK，支持 V1 及 V2 版本，覆盖：
 
 - REST 端点（市场数据 / 认证 / 账户 / 下单 / 成交 / 心跳 / Builder）
 - WebSocket 订阅（行情 + 用户态）
