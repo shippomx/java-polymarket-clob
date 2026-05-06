@@ -138,10 +138,20 @@ src/main/java/com/polymarket/clob/
 
 ```java
 public interface EvmRpcClient {
+    /**
+     * @return 32B (单值) 或 ABI 编码后的字节序列；调用方负责 ABI 解码
+     * @throws EvmRpcException JSON-RPC error 或 eth_call revert
+     */
     CompletableFuture<byte[]> ethCall(Address to, byte[] callData);
+
+    /**
+     * @return 合约 bytecode；未部署地址返回空字节数组（对应 RPC 的 "0x"）
+     */
     CompletableFuture<byte[]> getCode(Address addr);
 }
 ```
+
+错误模型：JSON-RPC `error` 字段或 HTTP 非 2xx 一律包成 `EvmRpcException`（运行时异常），由 `Onboarder.run` 的 `CompletableFuture` 透出。`eth_call` revert（含 revert reason）保留 reason 文本。
 
 #### `chain/DepositWalletReads`
 
@@ -191,6 +201,16 @@ public record SignedBatch(
 ) {}
 ```
 
+#### `deposit/ApprovalPlanner`
+
+```java
+public final class ApprovalPlanner {
+    ApprovalPlanner(DepositWalletReads reads, DepositWalletConfig cfg);
+    /** 并发读 13 项 allowance / isApprovedForAll，仅缺失的进入 calls，顺序与 ApprovalTargets.standard 一致。 */
+    CompletableFuture<List<Call>> planMissingApprovals(Address wallet);
+}
+```
+
 #### `order/Pol1271OrderSigner`
 
 ```java
@@ -199,6 +219,8 @@ public final class Pol1271OrderSigner {
         Signer eoa, OrderV2 order, long chainId, boolean negRisk);
 }
 ```
+
+下单提交本身复用现有 `api.OrderApi.postOrderV2(caller, creds, timestamp, signedOrderV2, orderType, deferExec, postOnly)`，本次不新增订单提交接口。
 
 #### `onboard/Onboarder`
 
@@ -641,7 +663,7 @@ Fixture 来源优先级：
 
 - JUnit 5（已用）
 - AssertJ（已用）
-- **WireMock 3.x（新增 test scope dep）**：现有 captor 是手写最小实现，覆盖不到 SSE / cookie 复杂场景；WireMock 让 gamma + relayer 双 host 测试更省事
+- **WireMock `3.9.1`（新增 test scope dep，artifact `wiremock-jre8-standalone`）**：现有 captor 是手写最小实现，覆盖不到 SSE / cookie 复杂场景；WireMock 让 gamma + relayer 双 host 测试更省事
 
 ---
 
@@ -684,7 +706,7 @@ Fixture 来源优先级：
 + <dependency>
 +   <groupId>com.github.tomakehurst</groupId>
 +   <artifactId>wiremock-jre8-standalone</artifactId>
-+   <version>3.x</version>
++   <version>3.9.1</version>
 +   <scope>test</scope>
 + </dependency>
 ```
@@ -693,7 +715,7 @@ Fixture 来源优先级：
 
 ### 8.4 版本
 
-- `pom.xml` `<version>` 跳大版本号（如 `1.x → 2.0.0`）
+- `pom.xml` `<version>` 从当前值跳到 `2.0.0`
 - 新增 `CHANGELOG.md` 记录 v2 破坏性变更
 - README 顶部 banner：`> ⚠️ v2 已切换到 Deposit Wallet 流，与 v1 Safe 流不兼容`
 
