@@ -23,6 +23,7 @@ public final class PolymarketContracts {
     public static final Address FACTORY            = Address.fromHex("0x00000000000Fb5C9ADea0298D729A0CB3823Cc07");
     public static final Address IMPLEMENTATION     = Address.fromHex("0x58CA52ebe0DadfdF531Cde7062e76746de4Db1eB");
 
+    // SOURCE: clob-client-v2/src/order-utils/abi/*.ts
     public static final Address USDC_E             = Address.fromHex("0xC011a7E12a19f7B1f670d46F03B03f3342E82DFB");
     public static final Address USDC_NATIVE        = Address.fromHex("0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174");
     public static final Address CTF                = Address.fromHex("0x4D97DCd97eC945f40cF65F87097ACe5EA0476045");
@@ -58,6 +59,14 @@ public final class PolymarketContracts {
             "TypedDataSign(Order contents,string name,string version,uint256 chainId,"
             + "address verifyingContract,bytes32 salt)" + ORDER_TYPE_STRING;
 
+    /**
+     * Precomputed keccak256 hashes of the type strings above.
+     *
+     * <p><b>Mutable array warning:</b> Java {@code byte[]} static finals are
+     * shallowly immutable — the reference is final but the bytes are not. Callers
+     * must <b>treat these as read-only</b>. Mutating these arrays corrupts the
+     * constant for all callers in the JVM. Internal SDK callers comply.</p>
+     */
     public static final byte[] ORDER_TYPE_HASH =
             Hash.sha3(ORDER_TYPE_STRING.getBytes(StandardCharsets.US_ASCII));
 
@@ -66,6 +75,6 @@ public final class PolymarketContracts {
 
     /** ERC-7739 末尾 uint16 BE = ORDER_TYPE_STRING 字节长度。 */
     public static int orderTypeStringByteLength() {
-        return ORDER_TYPE_STRING.getBytes(StandardCharsets.US_ASCII).length;
+        return ORDER_TYPE_STRING.length();   // US-ASCII: char count == byte count
     }
 }

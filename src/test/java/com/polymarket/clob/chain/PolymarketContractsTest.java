@@ -5,8 +5,6 @@ import org.junit.jupiter.api.Test;
 import org.web3j.crypto.Hash;
 
 import java.nio.charset.StandardCharsets;
-import java.util.HexFormat;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PolymarketContractsTest {
@@ -40,7 +38,14 @@ class PolymarketContractsTest {
     }
 
     @Test
-    void thirteenSpenderAddressesAllPresent() {
+    void typedDataSignTypeHashEqualsKeccakOfTypeString() {
+        byte[] expected = Hash.sha3(
+                PolymarketContracts.TYPED_DATA_SIGN_TYPE_STRING.getBytes(StandardCharsets.US_ASCII));
+        assertThat(PolymarketContracts.TYPED_DATA_SIGN_TYPE_HASH).isEqualTo(expected);
+    }
+
+    @Test
+    void contractAddressesAllPresent() {
         assertThat(PolymarketContracts.USDC_E).isNotNull();
         assertThat(PolymarketContracts.USDC_NATIVE).isNotNull();
         assertThat(PolymarketContracts.CTF).isNotNull();
