@@ -663,7 +663,7 @@ Fixture 来源优先级：
 
 - JUnit 5（已用）
 - AssertJ（已用）
-- **WireMock `3.9.1`（新增 test scope dep，artifact `wiremock-jre8-standalone`）**：现有 captor 是手写最小实现，覆盖不到 SSE / cookie 复杂场景；WireMock 让 gamma + relayer 双 host 测试更省事
+- **WireMock `3.9.2（已是 pom.xml 现有 dep，无需新增）`（新增 test scope dep，artifact `wiremock-jre8-standalone`）**：现有 captor 是手写最小实现，覆盖不到 SSE / cookie 复杂场景；WireMock 让 gamma + relayer 双 host 测试更省事
 
 ---
 
@@ -706,7 +706,7 @@ Fixture 来源优先级：
 + <dependency>
 +   <groupId>com.github.tomakehurst</groupId>
 +   <artifactId>wiremock-jre8-standalone</artifactId>
-+   <version>3.9.1</version>
++   <version>3.9.2（已是 pom.xml 现有 dep，无需新增）</version>
 +   <scope>test</scope>
 + </dependency>
 ```
