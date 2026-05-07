@@ -5,12 +5,16 @@ import com.polymarket.clob.auth.Signer;
 import com.polymarket.clob.chain.PolymarketContracts;
 import com.polymarket.clob.exception.ClobSignatureException;
 import com.polymarket.clob.model.Address;
+import com.polymarket.clob.model.ContractRegistry;
 import org.web3j.crypto.Hash;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.HexFormat;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * POLY_1271 嵌套签名（ERC-7739 TypedDataSign）。
@@ -23,6 +27,18 @@ import java.util.concurrent.CompletableFuture;
 public final class Pol1271OrderSigner {
 
     private Pol1271OrderSigner() {}
+
+    private static final String DOMAIN_TYPE_STRING =
+            "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)";
+    private static final byte[] DOMAIN_TYPE_HASH =
+            Hash.sha3(DOMAIN_TYPE_STRING.getBytes(StandardCharsets.US_ASCII));
+
+    private static final byte[] CTF_EXCHANGE_NAME_HASH =
+            Hash.sha3(PolymarketContracts.CTF_EXCHANGE_V2_DOMAIN_NAME.getBytes(StandardCharsets.UTF_8));
+    private static final byte[] CTF_EXCHANGE_VERSION_HASH =
+            Hash.sha3(PolymarketContracts.CTF_EXCHANGE_V2_DOMAIN_VERSION.getBytes(StandardCharsets.UTF_8));
+
+    private static final Map<String, byte[]> APP_DOMAIN_SEP_CACHE = new ConcurrentHashMap<>();
 
     /**
      * 计算 contents hash —— Order struct 的 EIP-712 struct hash。
@@ -49,7 +65,19 @@ public final class Pol1271OrderSigner {
 
     /** Task 16 实现：appDomainSep 缓存。 */
     static byte[] appDomainSeparator(long chainId, boolean negRisk) {
-        throw new UnsupportedOperationException("Implemented in Task 16");
+        String key = chainId + "|" + negRisk;
+        return APP_DOMAIN_SEP_CACHE.computeIfAbsent(key, k -> {
+            Address verifyingContract = ContractRegistry.exchangeV2(chainId, negRisk)
+                    .orElseThrow(() -> new ClobSignatureException(
+                            "exchangeV2 not registered for chainId=" + chainId + " negRisk=" + negRisk));
+            ByteBuffer buf = ByteBuffer.allocate(32 * 5);
+            buf.put(DOMAIN_TYPE_HASH);
+            buf.put(CTF_EXCHANGE_NAME_HASH);
+            buf.put(CTF_EXCHANGE_VERSION_HASH);
+            buf.put(padUint(BigInteger.valueOf(chainId)));
+            buf.put(padAddress(verifyingContract));
+            return Hash.sha3(buf.array());
+        });
     }
 
     /** Task 17 实现：完整 sign 流程。 */
