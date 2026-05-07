@@ -2,7 +2,10 @@ package com.polymarket.clob.onboard;
 
 import com.polymarket.clob.api.AuthApi;
 import com.polymarket.clob.api.AuthApiImpl;
+import com.polymarket.clob.api.OrderApi;
+import com.polymarket.clob.api.OrderApiImpl;
 import com.polymarket.clob.auth.ApiCredentials;
+import com.polymarket.clob.auth.SignatureType;
 import com.polymarket.clob.auth.Signer;
 import com.polymarket.clob.chain.DepositWalletReads;
 import com.polymarket.clob.chain.EvmRpcClient;
@@ -19,7 +22,12 @@ import com.polymarket.clob.http.HttpTransport;
 import com.polymarket.clob.http.JsonCodec;
 import com.polymarket.clob.model.Address;
 import com.polymarket.clob.model.ContractRegistry;
+import com.polymarket.clob.order.CreateOrderOptions;
+import com.polymarket.clob.order.LimitOrderArgsV2;
+import com.polymarket.clob.order.OrderBuilder;
 import com.polymarket.clob.order.PostOrderResponse;
+import com.polymarket.clob.order.SaltSource;
+import com.polymarket.clob.order.TickSize;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -197,10 +205,48 @@ public final class Onboarder {
         if (cfg.testOrder().isEmpty()) {
             return CompletableFuture.completedFuture(Optional.empty());
         }
-        // TODO(Task 21): 实现 POLY_1271 测试订单提交
-        // 需要 OrderBuilder + OrderApi + LimitOrderArgsV2 + CreateOrderOptions
-        // 此处暂时返回 empty，端到端冒烟测试（Task 21）覆盖此路径
-        return CompletableFuture.completedFuture(Optional.empty());
+        TestOrderArgs args = cfg.testOrder().get();
+
+        // 1. 构建 OrderBuilder（POLY_1271 路径，funder = deposit wallet）
+        SaltSource salt = cfg.saltSource() != null ? cfg.saltSource() : SaltSource.secureRandom();
+        OrderBuilder builder = new OrderBuilder(cfg.chainId(), eoa, wallet, SignatureType.POLY_1271, salt);
+
+        // 2. 构建 LimitOrderArgsV2（builderCode / metadata 默认全零）
+        LimitOrderArgsV2 limit = LimitOrderArgsV2.builder()
+                .tokenId(args.tokenId())
+                .side(args.side())
+                .price(args.price())
+                .size(args.size())
+                .build();
+
+        // 3. 解析 TickSize 并组装 CreateOrderOptions
+        TickSize tick = parseTickSize(args.tickSize());
+        CreateOrderOptions options = CreateOrderOptions.of(tick, args.negRisk());
+
+        // 4. 签名订单后 POST 到 /order
+        return builder.createOrderV2(limit, options).thenCompose(signed -> {
+            HttpTransport transport = HttpTransport.builder()
+                    .baseUri(cfg.clobHost())
+                    .httpClient(http)
+                    .objectMapper(JsonCodec.objectMapper())
+                    .requestTimeout(Duration.ofSeconds(30))
+                    .build();
+            OrderApi orderApi = new OrderApiImpl(transport);
+            long ts = Instant.now().getEpochSecond();
+            return orderApi.postOrderV2(eoa.address(), creds, ts, signed,
+                    args.orderType(), false, false)
+                    .thenApply(Optional::of);
+        });
+    }
+
+    private static TickSize parseTickSize(String s) {
+        return switch (s) {
+            case "0.1"    -> TickSize.TS_0_1;
+            case "0.01"   -> TickSize.TS_0_01;
+            case "0.001"  -> TickSize.TS_0_001;
+            case "0.0001" -> TickSize.TS_0_0001;
+            default -> throw new IllegalArgumentException("Unsupported tickSize: " + s);
+        };
     }
 
     // ---- 内部工具 ----

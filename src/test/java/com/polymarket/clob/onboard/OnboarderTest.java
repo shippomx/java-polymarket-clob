@@ -1,15 +1,19 @@
 package com.polymarket.clob.onboard;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
+import com.polymarket.clob.api.model.Side;
 import com.polymarket.clob.auth.LocalSigner;
 import com.polymarket.clob.auth.Signer;
 import com.polymarket.clob.chain.EvmRpcClient;
 import com.polymarket.clob.chain.PolymarketContracts;
 import com.polymarket.clob.model.Address;
+import com.polymarket.clob.order.OrderType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.net.URI;
 import java.time.Duration;
 import java.util.HexFormat;
@@ -139,5 +143,36 @@ class OnboarderTest {
         assertThat(r.wallet()).isEqualTo(wallet);
         // 至少 2 次 submit（WALLET-CREATE + WALLET batch）
         relayer.verify(2, postRequestedFor(urlEqualTo("/submit")));
+    }
+
+    @Test
+    void runWithTestOrderPlacesOrder() throws ExecutionException, InterruptedException {
+        Address wallet = Address.fromHex("0xada4563A6738215c56D2B59BC1C5a1dB65b1fD78");
+
+        stubGammaLoginOk();
+        stubClobAuthOk();
+
+        // Stub POST /order endpoint
+        clob.stubFor(post(urlPathEqualTo("/order"))
+                .willReturn(okJson(
+                        "{\"errorMsg\":\"\",\"orderID\":\"0xord\",\"status\":\"matched\",\"transactionsHashes\":[]}")));
+
+        OnboardingConfig cfg = baseCfg()
+                .testOrder(new TestOrderArgs(
+                        new BigInteger("57597306756265660"),
+                        Side.BUY,
+                        new BigDecimal("0.10"),
+                        new BigDecimal("5"),
+                        OrderType.GTC,
+                        "0.01",
+                        false))
+                .build();
+
+        Onboarder onboarder = Onboarder.forTesting(cfg, stubRpcAlreadyDeployed(wallet));
+        OnboardingResult r = onboarder.run(eoa).get();
+
+        assertThat(r.testOrder()).isPresent();
+        assertThat(r.testOrder().get().orderId()).isEqualTo("0xord");
+        clob.verify(1, postRequestedFor(urlPathEqualTo("/order")));
     }
 }
