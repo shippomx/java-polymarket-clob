@@ -27,9 +27,9 @@ import java.util.Optional;
  *
  * <p>真链冒烟前置：deposit wallet 至少需要 1 USDC.e 才能下单（CLOB 会拒绝余额不足）。
  */
-public final class DepositWalletOnboardAndTradeExample {
+public final class OnboarderExample {
 
-    private DepositWalletOnboardAndTradeExample() {}
+    private OnboarderExample() {}
 
     public static void main(String[] args) throws Exception {
         String pk = Objects.requireNonNull(System.getenv("PK"), "set PK env var (EOA private key)");
