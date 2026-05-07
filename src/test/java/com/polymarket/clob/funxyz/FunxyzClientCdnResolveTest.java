@@ -167,4 +167,23 @@ class FunxyzClientCdnResolveTest {
                 .withHeader("x-api-key",
                         equalTo(FunxyzConfig.DEFAULT_PUBLIC_API_KEY)));
     }
+
+    @Test
+    void explicitApiKey_skipsCdnEntirely() throws Exception {
+        // 故意 stub /flags/... 但用 verify(0) 断言不会被命中
+        server.stubFor(get(urlEqualTo("/flags/v0/config.json"))
+                .willReturn(okJson(FLAGS_OK_BODY)));
+        server.stubFor(post(urlEqualTo("/v1/eoa")).willReturn(okJson(EOA_OK_BODY)));
+
+        FunxyzClient client = new FunxyzClient(FunxyzConfig.builder()
+                .baseUrl(URI.create(server.baseUrl()))
+                .flagsConfigUrl(URI.create(server.baseUrl() + "/flags/v0/config.json"))
+                .apiKey("explicit-key-xyz")
+                .build());
+        client.getDepositAddresses(EOA, RECIPIENT).get();
+
+        server.verify(0, getRequestedFor(urlEqualTo("/flags/v0/config.json")));
+        server.verify(postRequestedFor(urlEqualTo("/v1/eoa"))
+                .withHeader("x-api-key", equalTo("explicit-key-xyz")));
+    }
 }
