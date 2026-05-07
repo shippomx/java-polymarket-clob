@@ -11,7 +11,7 @@ import java.util.concurrent.CompletableFuture;
 /**
  * Deposit Wallet onboarding 期间需要做的 6 类合约只读调用。封装 ABI 编解码细节。
  */
-public final class DepositWalletReads {
+public class DepositWalletReads {
 
     /** keccak256("predictWalletAddress(address,bytes32)")[:4] */
     private static final byte[] SEL_PREDICT_WALLET = selector("predictWalletAddress(address,bytes32)");
