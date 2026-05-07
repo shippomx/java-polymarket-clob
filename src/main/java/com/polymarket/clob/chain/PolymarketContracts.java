@@ -38,7 +38,7 @@ public final class PolymarketContracts {
     // ----- EIP-712 域 -----
     // SOURCE: clob-client-v2/src/order-utils/exchangeOrderBuilderV2.ts (常量名 CTF_EXCHANGE_V2_DOMAIN_NAME)
     public static final String CTF_EXCHANGE_V2_DOMAIN_NAME    = "Polymarket CTF Exchange";
-    public static final String CTF_EXCHANGE_V2_DOMAIN_VERSION = "1";
+    public static final String CTF_EXCHANGE_V2_DOMAIN_VERSION = "2";
 
     public static final String DEPOSIT_WALLET_DOMAIN_NAME    = "DepositWallet";
     public static final String DEPOSIT_WALLET_DOMAIN_VERSION = "1";

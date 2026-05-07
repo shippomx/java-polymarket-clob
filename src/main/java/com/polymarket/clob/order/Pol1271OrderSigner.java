@@ -86,7 +86,7 @@ public final class Pol1271OrderSigner {
         try {
             byte[] contents = contentsHash(order);
             byte[] appSep   = appDomainSeparator(chainId, negRisk);
-            byte[] digest   = innerDigest(order, chainId, negRisk, contents, appSep);
+            byte[] digest   = innerDigest(order, chainId, contents, appSep);
             return eoa.signHash(digest).thenApply(innerSig -> {
                 if (innerSig == null || innerSig.length != 65) {
                     throw new ClobSignatureException("inner signer returned length="
@@ -125,7 +125,7 @@ public final class Pol1271OrderSigner {
      *   name="DepositWallet", version="1", chainId, verifyingContract=order.signer (=wallet),
      *   salt=bytes32(0)。
      */
-    static byte[] innerDigest(OrderV2 order, long chainId, boolean negRisk,
+    static byte[] innerDigest(OrderV2 order, long chainId,
                                byte[] contentsHash, byte[] appDomainSep) {
         byte[] depositNameHash = Hash.sha3(
                 PolymarketContracts.DEPOSIT_WALLET_DOMAIN_NAME.getBytes(StandardCharsets.UTF_8));
