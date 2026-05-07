@@ -39,6 +39,10 @@ public final class GammaClient {
     public CompletableFuture<GammaSession> loginWithSiwe(Signer eoa, long chainId) {
         // 1. GET /nonce → cookie₀ + nonce 文本
         return getJson(baseUrl.resolve("/nonce"), null).thenCompose(nonceResp -> {
+            if (nonceResp.status() < 200 || nonceResp.status() >= 300) {
+                throw new GammaAuthException("/nonce failed status=" + nonceResp.status()
+                        + " body=" + nonceResp.body());
+            }
             String nonce;
             try {
                 nonce = mapper.readTree(nonceResp.body()).path("nonce").asText("");
@@ -46,6 +50,9 @@ public final class GammaClient {
                 throw new GammaAuthException("/nonce body parse failure", e);
             }
             if (nonce.isEmpty()) throw new GammaAuthException("/nonce missing nonce");
+            if (!nonce.matches("[A-Za-z0-9_\\-]+")) {
+                throw new GammaAuthException("/nonce value contains unexpected chars: " + nonce);
+            }
 
             String cookie0 = mergeSetCookie("", nonceResp.setCookies());
 
@@ -65,7 +72,9 @@ public final class GammaClient {
 
                 Map<String, String> headers = new LinkedHashMap<>();
                 headers.put("Authorization", "Bearer " + authToken);
-                headers.put("Cookie", cookie0);
+                if (!cookie0.isBlank()) {
+                    headers.put("Cookie", cookie0);
+                }
 
                 return getJson(baseUrl.resolve("/login"), headers).thenApply(loginResp -> {
                     if (loginResp.status() < 200 || loginResp.status() >= 300) {
@@ -82,15 +91,18 @@ public final class GammaClient {
     // ---- 占位：profile 相关方法在 Task 8 实现 ----
 
     public CompletableFuture<Boolean> profileExists(GammaSession s, Address eoa) {
-        throw new UnsupportedOperationException("Implemented in Task 8");
+        return CompletableFuture.failedFuture(
+                new UnsupportedOperationException("Implemented in Task 8"));
     }
 
     public CompletableFuture<Void> createProfile(GammaSession s, Address eoa, Address proxyWallet) {
-        throw new UnsupportedOperationException("Implemented in Task 8");
+        return CompletableFuture.failedFuture(
+                new UnsupportedOperationException("Implemented in Task 8"));
     }
 
     public CompletableFuture<Void> ensureProfile(GammaSession s, Address eoa, Address proxyWallet) {
-        throw new UnsupportedOperationException("Implemented in Task 8");
+        return CompletableFuture.failedFuture(
+                new UnsupportedOperationException("Implemented in Task 8"));
     }
 
     // ---- 内部工具 ----
