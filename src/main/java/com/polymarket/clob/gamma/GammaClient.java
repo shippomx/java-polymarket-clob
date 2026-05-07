@@ -90,7 +90,7 @@ public final class GammaClient {
     }
 
     public CompletableFuture<Boolean> profileExists(GammaSession s, Address eoa) {
-        URI uri = baseUrl.resolve("/users?address=" + eoa.toHex());
+        URI uri = baseUrl.resolve("/users?address=" + eoa.toLowerHex());
         Map<String, String> headers = Map.of("Cookie", s.cookieHeader());
         return getJson(uri, headers).thenApply(resp -> {
             if (resp.status() == 404) return false;

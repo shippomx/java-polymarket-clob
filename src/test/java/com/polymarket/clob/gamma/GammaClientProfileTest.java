@@ -37,7 +37,7 @@ class GammaClientProfileTest {
     @Test
     void profileExistsTrueOn200() throws ExecutionException, InterruptedException {
         server.stubFor(get(urlPathEqualTo("/users"))
-                .withQueryParam("address", equalTo(EOA.toHex()))
+                .withQueryParam("address", equalTo(EOA.toLowerHex()))
                 .willReturn(okJson("[{\"id\":\"u1\"}]")));
         assertThat(client.profileExists(session, EOA).get()).isTrue();
     }
