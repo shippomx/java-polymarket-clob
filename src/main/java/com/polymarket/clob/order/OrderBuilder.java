@@ -145,6 +145,9 @@ public final class OrderBuilder {
                 args.getBuilderCode(),
                 args.getMetadata());
 
+        if (signatureType == SignatureType.POLY_1271) {
+            return Pol1271OrderSigner.sign(signer, order, chainId, options.negRisk());
+        }
         return EIP712OrderSigner.signV2(signer, order, chainId, options.negRisk());
     }
 
@@ -163,6 +166,9 @@ public final class OrderBuilder {
                 args.getBuilderCode(),
                 args.getMetadata());
 
+        if (signatureType == SignatureType.POLY_1271) {
+            return Pol1271OrderSigner.sign(signer, order, chainId, options.negRisk());
+        }
         return EIP712OrderSigner.signV2(signer, order, chainId, options.negRisk());
     }
 
@@ -178,18 +184,13 @@ public final class OrderBuilder {
         }
         validateBytes32(builderCode, "builderCode");
         validateBytes32(metadata, "metadata");
-        if (signatureType == SignatureType.POLY_1271) {
-            // POLY_1271 是 V2 新增的合约签名路径，此 builder 不实现 1271 验证逻辑
-            // （需要 EIP-1271 签名而非 ECDSA），调用方应使用 1271-aware 签名路径
-            throw new UnsupportedOperationException(
-                    "POLY_1271 (EIP-1271) signing is not yet supported by OrderBuilder; "
-                            + "use a 1271-aware signing path.");
-        }
+
+        Address signerField = signatureType == SignatureType.POLY_1271 ? funder : signer.address();
 
         return OrderV2.builder()
                 .salt(saltSource.next())
                 .maker(funder)
-                .signer(signer.address())
+                .signer(signerField)
                 .tokenId(tokenId)
                 .makerAmount(amts.maker())
                 .takerAmount(amts.taker())
