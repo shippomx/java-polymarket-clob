@@ -126,7 +126,7 @@ public final class TradingExample {
 
     private static SignatureType parseSignatureType(String raw) {
         if (raw == null || raw.isBlank()) {
-            return SignatureType.POLY_PROXY;
+            return SignatureType.EOA;
         }
         return SignatureType.valueOf(raw.trim().toUpperCase());
     }

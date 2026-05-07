@@ -20,7 +20,7 @@ import java.util.Optional;
  *   <li>{@code CLOB_ENDPOINT}（可选，默认 {@code https://clob.polymarket.com}）</li>
  *   <li>{@code CLOB_CHAIN_ID}（可选，{@code POLYGON}|{@code AMOY}，默认 {@code POLYGON}）</li>
  *   <li>{@code CLOB_PRIVATE_KEY}（<b>必填</b>，0x 前缀的 EOA 私钥）</li>
- *   <li>{@code CLOB_SIGNATURE_TYPE}（可选，{@code EOA}|{@code POLY_PROXY}|{@code POLY_GNOSIS_SAFE}，默认 {@code POLY_PROXY}）</li>
+ *   <li>{@code CLOB_SIGNATURE_TYPE}（可选，{@code EOA}|{@code POLY_1271}，默认 {@code EOA}）</li>
  * </ul>
  *
  * <p>运行：
@@ -93,7 +93,7 @@ public final class AuthenticatedExample {
 
     private static SignatureType parseSignatureType(String raw) {
         if (raw == null || raw.isBlank()) {
-            return SignatureType.POLY_PROXY;
+            return SignatureType.EOA;
         }
         return SignatureType.valueOf(raw.trim().toUpperCase());
     }

@@ -87,7 +87,7 @@ class OrderJsonTest {
                 "  \"nonce\": \"1\",\n" +
                 "  \"feeRateBps\": \"10\",\n" +
                 "  \"side\": \"SELL\",\n" +
-                "  \"signatureType\": 1\n" +
+                "  \"signatureType\": 0\n" +
                 "}";
 
         Order parsed = mapper.readValue(json, Order.class);
@@ -95,6 +95,6 @@ class OrderJsonTest {
         assertThat(parsed.getTokenId()).isEqualTo(BigInteger.valueOf(123));
         assertThat(parsed.getMakerAmount()).isEqualTo(BigInteger.ONE);
         assertThat(parsed.getSide()).isEqualTo(Side.SELL);
-        assertThat(parsed.getSignatureType()).isEqualTo(SignatureType.POLY_PROXY);
+        assertThat(parsed.getSignatureType()).isEqualTo(SignatureType.EOA);
     }
 }

@@ -59,27 +59,6 @@ class ContractRegistryTest {
         assertThat(ContractRegistry.contractConfig(1L, true)).isEmpty();
     }
 
-    @Test
-    void walletConfigUnsupportedChainReturnsEmpty() {
-        assertThat(ContractRegistry.walletConfig(1L)).isEmpty();
-        assertThat(ContractRegistry.walletConfig(-1L)).isEmpty();
-    }
-
-    @Test
-    void walletContractPolygon() {
-        WalletContractConfig cfg = ContractRegistry.walletConfig(ChainId.POLYGON).orElseThrow();
-        assertThat(cfg.proxyFactory()).contains(
-                Address.fromHex("0xaB45c5A4B0c941a2F231C04C3f49182e1A254052"));
-        assertThat(cfg.safeFactory())
-                .isEqualTo(Address.fromHex("0xaacFeEa03eb1561C4e67d661e40682Bd20E3541b"));
-    }
-
-    @Test
-    void walletContractAmoyHasNoProxyFactory() {
-        WalletContractConfig cfg = ContractRegistry.walletConfig(ChainId.AMOY).orElseThrow();
-        assertThat(cfg.proxyFactory()).isEmpty();
-    }
-
     // -------------------- V2 矩阵（2026-04-28 CTF Exchange v1→v2 切换）--------------------
 
     @Test

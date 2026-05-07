@@ -75,24 +75,25 @@ class AuthenticatedClobClientTest {
     }
 
     @Test
-    void authenticateWithCredentialsDerivesProxyFunderOnPolygon() {
+    void authenticatePoly1271RequiresExplicitFunder() {
         try (ClobClient client = newClient(ChainId.POLYGON)) {
             Signer signer = LocalSigner.fromPrivateKey(PRIVATE_KEY);
-            AuthenticatedClobClient authed = client.authenticate(
-                    signer, SignatureType.POLY_PROXY, CREDS);
-            assertThat(authed.funder()).isEqualTo(
-                    Address.fromHex("0x365f0cA36ae1F641E02Fe3b7743673DA42A13a70"));
+            assertThatThrownBy(() -> client.authenticate(
+                    signer, SignatureType.POLY_1271, CREDS))
+                    .isInstanceOf(ClobAuthException.class)
+                    .hasMessageContaining("explicit funder");
         }
     }
 
     @Test
-    void authenticateRejectsUnsupportedCombo() {
-        try (ClobClient client = newClient(ChainId.AMOY)) {
+    void authenticatePoly1271WithExplicitFunderSucceeds() {
+        Address wallet = Address.fromHex("0xada4563A6738215c56D2B59BC1C5a1dB65b1fD78");
+        try (ClobClient client = newClient(ChainId.POLYGON)) {
             Signer signer = LocalSigner.fromPrivateKey(PRIVATE_KEY);
-            assertThatThrownBy(() -> client.authenticate(
-                    signer, SignatureType.POLY_PROXY, CREDS))
-                    .isInstanceOf(ClobAuthException.class)
-                    .hasMessageContaining("funder");
+            AuthenticatedClobClient authed = client.authenticate(
+                    signer, SignatureType.POLY_1271, wallet, CREDS);
+            assertThat(authed.funder()).isEqualTo(wallet);
+            assertThat(authed.signatureType()).isEqualTo(SignatureType.POLY_1271);
         }
     }
 
@@ -113,13 +114,13 @@ class AuthenticatedClobClientTest {
     void balanceAllowanceConvenienceFillsSignatureType() {
         wm.stubFor(get(urlPathEqualTo("/balance-allowance"))
                 .withQueryParam("asset_type", equalTo("COLLATERAL"))
-                .withQueryParam("signature_type", equalTo("1"))
+                .withQueryParam("signature_type", equalTo("0"))
                 .willReturn(okJson("{\"balance\":\"0\"}")));
 
         try (ClobClient client = newClient(ChainId.POLYGON)) {
             Signer signer = LocalSigner.fromPrivateKey(PRIVATE_KEY);
             AuthenticatedClobClient authed = client.authenticate(
-                    signer, SignatureType.POLY_PROXY, CREDS);
+                    signer, SignatureType.EOA, CREDS);
 
             BalanceAllowanceRequest req = BalanceAllowanceRequest.builder()
                     .assetType(AssetType.COLLATERAL)

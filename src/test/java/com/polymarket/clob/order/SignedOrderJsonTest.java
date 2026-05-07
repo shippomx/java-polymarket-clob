@@ -30,7 +30,7 @@ class SignedOrderJsonTest {
                 .nonce(BigInteger.ONE)
                 .feeRateBps(BigInteger.TEN)
                 .side(Side.SELL)
-                .signatureType(SignatureType.POLY_PROXY)
+                .signatureType(SignatureType.EOA)
                 .build();
     }
 
@@ -50,7 +50,7 @@ class SignedOrderJsonTest {
 
         assertThat(node.get("salt").bigIntegerValue()).isEqualTo(new BigInteger("9999"));
         assertThat(node.get("side").asText()).isEqualTo("SELL");
-        assertThat(node.get("signatureType").asInt()).isEqualTo(1);
+        assertThat(node.get("signatureType").asInt()).isEqualTo(0);
         assertThat(node.get("maker").asText())
                 .isEqualToIgnoringCase("0x1111111111111111111111111111111111111111");
         assertThat(node.get("tokenId").asText()).isEqualTo("42");

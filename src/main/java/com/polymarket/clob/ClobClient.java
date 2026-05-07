@@ -7,7 +7,6 @@ import com.polymarket.clob.api.MarketDataApiImpl;
 import com.polymarket.clob.auth.ApiCredentials;
 import com.polymarket.clob.auth.Signer;
 import com.polymarket.clob.auth.SignatureType;
-import com.polymarket.clob.auth.WalletDerivation;
 import com.polymarket.clob.exception.ClobAuthException;
 import com.polymarket.clob.http.HttpTransport;
 import com.polymarket.clob.model.Address;
@@ -101,18 +100,36 @@ public final class ClobClient implements AutoCloseable {
     /**
      * 升级为 {@link AuthenticatedClobClient}：直接使用已有的 {@link ApiCredentials}，跳过网络调用。
      *
-     * <p>{@code funder} 按 {@link SignatureType} 从 {@code signer.address()} 派生：
-     * EOA 直接用 EOA，PROXY 走 {@code CREATE2}，GNOSIS_SAFE 同理。派生失败（例如 Amoy 不支持
-     * Proxy）抛出 {@link ClobAuthException}。</p>
+     * <p>{@code funder} 按 {@link SignatureType} 确定：
+     * {@link SignatureType#EOA} 直接用 EOA 地址；
+     * {@link SignatureType#POLY_1271} 要求调用方通过
+     * {@link #authenticate(Signer, SignatureType, Address, ApiCredentials)} 显式提供 funder 地址。</p>
      */
     public AuthenticatedClobClient authenticate(
             Signer signer, SignatureType signatureType, ApiCredentials credentials) {
         Objects.requireNonNull(signer, "signer");
         Objects.requireNonNull(signatureType, "signatureType");
         Objects.requireNonNull(credentials, "credentials");
-        Address funder = WalletDerivation.deriveFunder(signatureType, signer.address(), chainId)
-                .orElseThrow(() -> new ClobAuthException(
-                        "Cannot derive funder for chainId=" + chainId + " type=" + signatureType));
+        Address funder = switch (signatureType) {
+            case EOA -> signer.address();
+            case POLY_1271 -> throw new ClobAuthException(
+                    "POLY_1271 requires an explicit funder address; use authenticate(signer, POLY_1271, funder, credentials)");
+        };
+        return new AuthenticatedClobClient(
+                endpoint, chainId, transport, market,
+                signer, signatureType, funder, credentials,
+                clock, saltSource);
+    }
+
+    /**
+     * 升级为 {@link AuthenticatedClobClient}（POLY_1271 专用）：调用方显式提供合约钱包地址作为 funder。
+     */
+    public AuthenticatedClobClient authenticate(
+            Signer signer, SignatureType signatureType, Address funder, ApiCredentials credentials) {
+        Objects.requireNonNull(signer, "signer");
+        Objects.requireNonNull(signatureType, "signatureType");
+        Objects.requireNonNull(funder, "funder");
+        Objects.requireNonNull(credentials, "credentials");
         return new AuthenticatedClobClient(
                 endpoint, chainId, transport, market,
                 signer, signatureType, funder, credentials,

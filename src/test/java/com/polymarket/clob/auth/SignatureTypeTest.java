@@ -15,16 +15,12 @@ class SignatureTypeTest {
     @Test
     void numericCodesAlignWithRust() {
         assertThat(SignatureType.EOA.code()).isEqualTo(0);
-        assertThat(SignatureType.POLY_PROXY.code()).isEqualTo(1);
-        assertThat(SignatureType.POLY_GNOSIS_SAFE.code()).isEqualTo(2);
         assertThat(SignatureType.POLY_1271.code()).isEqualTo(3);
     }
 
     @Test
     void toQueryValueIsDecimalString() {
         assertThat(SignatureType.EOA.toQueryValue()).isEqualTo("0");
-        assertThat(SignatureType.POLY_PROXY.toQueryValue()).isEqualTo("1");
-        assertThat(SignatureType.POLY_GNOSIS_SAFE.toQueryValue()).isEqualTo("2");
         assertThat(SignatureType.POLY_1271.toQueryValue()).isEqualTo("3");
     }
 
@@ -39,14 +35,14 @@ class SignatureTypeTest {
 
     @Test
     void serializesAsNumber() {
-        assertThat(JsonCodec.writeValue(mapper, SignatureType.POLY_PROXY)).isEqualTo("1");
+        assertThat(JsonCodec.writeValue(mapper, SignatureType.EOA)).isEqualTo("0");
     }
 
     @Test
     void deserializesFromNumberOrName() {
         assertThat(JsonCodec.readValue(mapper, "0", SignatureType.class)).isEqualTo(SignatureType.EOA);
-        assertThat(JsonCodec.readValue(mapper, "\"POLY_PROXY\"", SignatureType.class))
-                .isEqualTo(SignatureType.POLY_PROXY);
+        assertThat(JsonCodec.readValue(mapper, "\"EOA\"", SignatureType.class))
+                .isEqualTo(SignatureType.EOA);
     }
 
     @Test

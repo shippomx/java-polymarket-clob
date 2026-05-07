@@ -224,7 +224,7 @@ public final class WebSocketOrderBookExample {
     }
 
     private static SignatureType parseSignatureType(String raw) {
-        if (raw == null || raw.isBlank()) return SignatureType.POLY_PROXY;
+        if (raw == null || raw.isBlank()) return SignatureType.EOA;
         return SignatureType.valueOf(raw.trim().toUpperCase());
     }
 }

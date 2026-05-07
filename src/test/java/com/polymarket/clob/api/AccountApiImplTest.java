@@ -101,14 +101,14 @@ class AccountApiImplTest {
         BalanceAllowanceRequest base = BalanceAllowanceRequest.builder()
                 .assetType(AssetType.COLLATERAL)
                 .build();
-        BalanceAllowanceRequest filled = base.withDefaultSignatureType(SignatureType.POLY_PROXY);
-        assertThat(filled.signatureType()).contains(SignatureType.POLY_PROXY);
+        BalanceAllowanceRequest filled = base.withDefaultSignatureType(SignatureType.POLY_1271);
+        assertThat(filled.signatureType()).contains(SignatureType.POLY_1271);
 
         BalanceAllowanceRequest already = BalanceAllowanceRequest.builder()
                 .assetType(AssetType.COLLATERAL)
                 .signatureType(SignatureType.EOA)
                 .build();
-        assertThat(already.withDefaultSignatureType(SignatureType.POLY_GNOSIS_SAFE)
+        assertThat(already.withDefaultSignatureType(SignatureType.POLY_1271)
                 .signatureType())
                 .contains(SignatureType.EOA);
     }

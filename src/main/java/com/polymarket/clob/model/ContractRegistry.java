@@ -12,7 +12,7 @@ import com.polymarket.clob.chain.DepositWalletConfig;
  * <ul>
  *   <li>{@link #contractConfig(long, boolean)}：返回包含 V1 + V2 字段的 {@link ContractConfig}；
  *       V1 字段总在，V2 字段在已部署的链（Polygon 137 / Amoy 80002）上同样在。</li>
- *   <li>{@link #walletConfig(long)}：钱包工厂地址（Proxy / Gnosis Safe）；与 V2 切换无关。</li>
+ *   <li>{@link #depositWalletConfig(long)}：Deposit Wallet 配置（仅 Polygon）。</li>
  * </ul>
  *
  * <p>V2 地址来源：rs-clob-client-v2 与 py-clob-client-v2 的 {@code config}
@@ -89,23 +89,11 @@ public final class ContractRegistry {
                     V2_NEG_RISK_EXCHANGE,
                     P_USD_POLYGON));
 
-    private static final Map<Long, WalletContractConfig> WALLETS = Map.of(
-            ChainId.POLYGON, WalletContractConfig.of(
-                    Optional.of(Address.fromHex("0xaB45c5A4B0c941a2F231C04C3f49182e1A254052")),
-                    Address.fromHex("0xaacFeEa03eb1561C4e67d661e40682Bd20E3541b")),
-            ChainId.AMOY, WalletContractConfig.of(
-                    Optional.empty(),
-                    Address.fromHex("0xaacFeEa03eb1561C4e67d661e40682Bd20E3541b")));
-
     private ContractRegistry() {}
 
     public static Optional<ContractConfig> contractConfig(long chainId, boolean negRisk) {
         Map<Long, ContractConfig> table = negRisk ? NEG_RISK : STANDARD;
         return Optional.ofNullable(table.get(chainId));
-    }
-
-    public static Optional<WalletContractConfig> walletConfig(long chainId) {
-        return Optional.ofNullable(WALLETS.get(chainId));
     }
 
     /**
