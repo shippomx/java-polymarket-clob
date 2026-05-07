@@ -29,13 +29,26 @@ public class SignedOrderV2 {
     @JsonProperty("signature")
     String signature;
 
-    /** 语义化工厂：签完名后合成 {@link SignedOrderV2}，确保签名形态正确。 */
+    /**
+     * 语义化工厂：签完名后合成 {@link SignedOrderV2}，确保签名形态正确。
+     *
+     * <p>签名长度约束：
+     * <ul>
+     *   <li>EIP-712 ECDSA（EOA / POLY_EOA）：恰好 65 字节（132 hex 字符）。</li>
+     *   <li>ERC-7739 POLY_1271：65 + 32 + 32 + ORDER_TYPE_STRING_len + 2 字节，
+     *       长度可变，但最少 131 字节（至少大于 65 字节）。</li>
+     * </ul>
+     * 工厂只检查 {@code 0x} 前缀 + 偶数长度 + ≥ 65 字节（130 hex 字符）。
+     * </p>
+     */
     public static SignedOrderV2 of(OrderV2 order, String signature) {
         Objects.requireNonNull(order, "order");
         Objects.requireNonNull(signature, "signature");
-        if (!signature.startsWith("0x") || signature.length() != 132) {
+        int hexLen = signature.length();
+        if (!signature.startsWith("0x") || hexLen < 132 || (hexLen % 2) != 0) {
             throw new IllegalArgumentException(
-                    "signature must be 0x-prefixed 65-byte hex (132 chars), got length " + signature.length());
+                    "signature must be 0x-prefixed even-length hex (≥ 65 bytes / 132 hex chars), got length "
+                            + hexLen);
         }
         return new SignedOrderV2(order, signature);
     }

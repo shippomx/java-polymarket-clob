@@ -80,10 +80,75 @@ public final class Pol1271OrderSigner {
         });
     }
 
-    /** Task 17 实现：完整 sign 流程。 */
+    /** ERC-7739 nested TypedDataSign 全签名。 */
     public static CompletableFuture<SignedOrderV2> sign(Signer eoa, OrderV2 order,
                                                          long chainId, boolean negRisk) {
-        throw new UnsupportedOperationException("Implemented in Task 17");
+        try {
+            byte[] contents = contentsHash(order);
+            byte[] appSep   = appDomainSeparator(chainId, negRisk);
+            byte[] digest   = innerDigest(order, chainId, negRisk, contents, appSep);
+            return eoa.signHash(digest).thenApply(innerSig -> {
+                if (innerSig == null || innerSig.length != 65) {
+                    throw new ClobSignatureException("inner signer returned length="
+                            + (innerSig == null ? -1 : innerSig.length));
+                }
+                byte[] orderTypeAscii = PolymarketContracts.ORDER_TYPE_STRING
+                        .getBytes(StandardCharsets.US_ASCII);
+                int len = orderTypeAscii.length;
+
+                ByteBuffer buf = ByteBuffer.allocate(65 + 32 + 32 + len + 2);
+                buf.put(innerSig);
+                buf.put(appSep);
+                buf.put(contents);
+                buf.put(orderTypeAscii);
+                buf.put((byte) ((len >> 8) & 0xff));
+                buf.put((byte) (len & 0xff));
+                String hex = "0x" + HexFormat.of().formatHex(buf.array());
+                return SignedOrderV2.of(order, hex);
+            });
+        } catch (ClobSignatureException e) {
+            return CompletableFuture.failedFuture(e);
+        } catch (RuntimeException e) {
+            return CompletableFuture.failedFuture(
+                    new ClobSignatureException("Pol1271OrderSigner.sign failed", e));
+        }
+    }
+
+    /**
+     * 内层 TypedDataSign 摘要：
+     *   structHash = keccak256(TYPED_DATA_SIGN_TYPE_HASH || contentsHash
+     *                          || keccak256("DepositWallet") || keccak256("1")
+     *                          || pad32(chainId) || pad32(wallet) || zero32)
+     *   digest     = keccak256(0x1901 || appDomainSep || structHash)
+     *
+     * 钱包域用作 TypedDataSign value 的内嵌 domain：
+     *   name="DepositWallet", version="1", chainId, verifyingContract=order.signer (=wallet),
+     *   salt=bytes32(0)。
+     */
+    static byte[] innerDigest(OrderV2 order, long chainId, boolean negRisk,
+                               byte[] contentsHash, byte[] appDomainSep) {
+        byte[] depositNameHash = Hash.sha3(
+                PolymarketContracts.DEPOSIT_WALLET_DOMAIN_NAME.getBytes(StandardCharsets.UTF_8));
+        byte[] depositVersionHash = Hash.sha3(
+                PolymarketContracts.DEPOSIT_WALLET_DOMAIN_VERSION.getBytes(StandardCharsets.UTF_8));
+        byte[] zero32 = new byte[32];
+
+        ByteBuffer structBuf = ByteBuffer.allocate(32 * 7);
+        structBuf.put(PolymarketContracts.TYPED_DATA_SIGN_TYPE_HASH);
+        structBuf.put(contentsHash);
+        structBuf.put(depositNameHash);
+        structBuf.put(depositVersionHash);
+        structBuf.put(padUint(BigInteger.valueOf(chainId)));
+        structBuf.put(padAddress(order.getSigner()));
+        structBuf.put(zero32);
+        byte[] structHash = Hash.sha3(structBuf.array());
+
+        ByteBuffer digestBuf = ByteBuffer.allocate(2 + 32 + 32);
+        digestBuf.put((byte) 0x19);
+        digestBuf.put((byte) 0x01);
+        digestBuf.put(appDomainSep);
+        digestBuf.put(structHash);
+        return Hash.sha3(digestBuf.array());
     }
 
     // ---- helpers ----
