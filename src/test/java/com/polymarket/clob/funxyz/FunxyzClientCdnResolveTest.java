@@ -93,6 +93,7 @@ class FunxyzClientCdnResolveTest {
         FunxyzClient client = buildClientWithoutExplicitApiKey(null);
         client.getDepositAddresses(EOA, RECIPIENT).get();
 
+        server.verify(getRequestedFor(urlEqualTo("/flags/v0/config.json")));
         server.verify(postRequestedFor(urlEqualTo("/v1/eoa"))
                 .withHeader("x-api-key",
                         equalTo(FunxyzConfig.DEFAULT_PUBLIC_API_KEY)));
@@ -108,6 +109,7 @@ class FunxyzClientCdnResolveTest {
         FunxyzClient client = buildClientWithoutExplicitApiKey(Duration.ofMillis(200));
         client.getDepositAddresses(EOA, RECIPIENT).get();
 
+        server.verify(getRequestedFor(urlEqualTo("/flags/v0/config.json")));
         server.verify(postRequestedFor(urlEqualTo("/v1/eoa"))
                 .withHeader("x-api-key",
                         equalTo(FunxyzConfig.DEFAULT_PUBLIC_API_KEY)));
@@ -125,6 +127,7 @@ class FunxyzClientCdnResolveTest {
         FunxyzClient client = buildClientWithoutExplicitApiKey(null);
         client.getDepositAddresses(EOA, RECIPIENT).get();
 
+        server.verify(getRequestedFor(urlEqualTo("/flags/v0/config.json")));
         server.verify(postRequestedFor(urlEqualTo("/v1/eoa"))
                 .withHeader("x-api-key",
                         equalTo(FunxyzConfig.DEFAULT_PUBLIC_API_KEY)));
@@ -139,6 +142,7 @@ class FunxyzClientCdnResolveTest {
         FunxyzClient client = buildClientWithoutExplicitApiKey(null);
         client.getDepositAddresses(EOA, RECIPIENT).get();
 
+        server.verify(getRequestedFor(urlEqualTo("/flags/v0/config.json")));
         server.verify(postRequestedFor(urlEqualTo("/v1/eoa"))
                 .withHeader("x-api-key",
                         equalTo(FunxyzConfig.DEFAULT_PUBLIC_API_KEY)));
@@ -158,6 +162,7 @@ class FunxyzClientCdnResolveTest {
         FunxyzClient client = buildClientWithoutExplicitApiKey(null);
         client.getDepositAddresses(EOA, RECIPIENT).get();
 
+        server.verify(getRequestedFor(urlEqualTo("/flags/v0/config.json")));
         server.verify(postRequestedFor(urlEqualTo("/v1/eoa"))
                 .withHeader("x-api-key",
                         equalTo(FunxyzConfig.DEFAULT_PUBLIC_API_KEY)));
