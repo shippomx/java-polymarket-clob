@@ -83,4 +83,83 @@ class FunxyzClientCdnResolveTest {
                 .withHeader("x-api-key",
                         equalTo("Y53dikxXdT4E3afI1l8BMBSWgyhKvf65k6Dut1k6")));
     }
+
+    @Test
+    void cdn500_fallsBackToDefaultPublicApiKey() throws Exception {
+        server.stubFor(get(urlEqualTo("/flags/v0/config.json"))
+                .willReturn(aResponse().withStatus(500).withBody("oops")));
+        server.stubFor(post(urlEqualTo("/v1/eoa")).willReturn(okJson(EOA_OK_BODY)));
+
+        FunxyzClient client = buildClientWithoutExplicitApiKey(null);
+        client.getDepositAddresses(EOA, RECIPIENT).get();
+
+        server.verify(postRequestedFor(urlEqualTo("/v1/eoa"))
+                .withHeader("x-api-key",
+                        equalTo(FunxyzConfig.DEFAULT_PUBLIC_API_KEY)));
+    }
+
+    @Test
+    void cdnTimeout_fallsBackToDefaultPublicApiKey() throws Exception {
+        // WireMock 固定延迟 2s,client 超时 200ms → HttpTimeoutException
+        server.stubFor(get(urlEqualTo("/flags/v0/config.json"))
+                .willReturn(okJson(FLAGS_OK_BODY).withFixedDelay(2_000)));
+        server.stubFor(post(urlEqualTo("/v1/eoa")).willReturn(okJson(EOA_OK_BODY)));
+
+        FunxyzClient client = buildClientWithoutExplicitApiKey(Duration.ofMillis(200));
+        client.getDepositAddresses(EOA, RECIPIENT).get();
+
+        server.verify(postRequestedFor(urlEqualTo("/v1/eoa"))
+                .withHeader("x-api-key",
+                        equalTo(FunxyzConfig.DEFAULT_PUBLIC_API_KEY)));
+    }
+
+    @Test
+    void cdnNonJsonBody_fallsBackToDefaultPublicApiKey() throws Exception {
+        server.stubFor(get(urlEqualTo("/flags/v0/config.json"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("content-type", "application/json")
+                        .withBody("not json at all {")));
+        server.stubFor(post(urlEqualTo("/v1/eoa")).willReturn(okJson(EOA_OK_BODY)));
+
+        FunxyzClient client = buildClientWithoutExplicitApiKey(null);
+        client.getDepositAddresses(EOA, RECIPIENT).get();
+
+        server.verify(postRequestedFor(urlEqualTo("/v1/eoa"))
+                .withHeader("x-api-key",
+                        equalTo(FunxyzConfig.DEFAULT_PUBLIC_API_KEY)));
+    }
+
+    @Test
+    void cdnJsonMissingPath_fallsBackToDefaultPublicApiKey() throws Exception {
+        server.stubFor(get(urlEqualTo("/flags/v0/config.json"))
+                .willReturn(okJson("{\"flags\":{}}")));
+        server.stubFor(post(urlEqualTo("/v1/eoa")).willReturn(okJson(EOA_OK_BODY)));
+
+        FunxyzClient client = buildClientWithoutExplicitApiKey(null);
+        client.getDepositAddresses(EOA, RECIPIENT).get();
+
+        server.verify(postRequestedFor(urlEqualTo("/v1/eoa"))
+                .withHeader("x-api-key",
+                        equalTo(FunxyzConfig.DEFAULT_PUBLIC_API_KEY)));
+    }
+
+    @Test
+    void cdnValuesEmptyArray_fallsBackToDefaultPublicApiKey() throws Exception {
+        String emptyValuesBody = """
+                {"flags":{"token_transfer_source_chains_and_assets":{
+                  "overrides":[{"if_any":[{"key":"apiKey","values":[]}]}]
+                }}}
+                """;
+        server.stubFor(get(urlEqualTo("/flags/v0/config.json"))
+                .willReturn(okJson(emptyValuesBody)));
+        server.stubFor(post(urlEqualTo("/v1/eoa")).willReturn(okJson(EOA_OK_BODY)));
+
+        FunxyzClient client = buildClientWithoutExplicitApiKey(null);
+        client.getDepositAddresses(EOA, RECIPIENT).get();
+
+        server.verify(postRequestedFor(urlEqualTo("/v1/eoa"))
+                .withHeader("x-api-key",
+                        equalTo(FunxyzConfig.DEFAULT_PUBLIC_API_KEY)));
+    }
 }
