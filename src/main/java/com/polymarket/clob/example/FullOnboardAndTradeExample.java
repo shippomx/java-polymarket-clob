@@ -19,6 +19,9 @@ import com.polymarket.clob.deposit.DepositWalletDerivation;
 import com.polymarket.clob.deposit.DepositWalletRelayer;
 import com.polymarket.clob.deposit.RelayerTxResult;
 import com.polymarket.clob.deposit.SignedBatch;
+import com.polymarket.clob.funxyz.DepositAddresses;
+import com.polymarket.clob.funxyz.FunxyzClient;
+import com.polymarket.clob.funxyz.FunxyzConfig;
 import com.polymarket.clob.gamma.GammaClient;
 import com.polymarket.clob.gamma.GammaSession;
 import com.polymarket.clob.http.HttpTransport;
@@ -134,25 +137,34 @@ public final class FullOnboardAndTradeExample {
         System.out.println("    wallet:   " + wallet.toHex());
         System.out.println("    deployed: " + deployed);
 
-        // ---- Step 3: Ensure Gamma profile ----
-        step(3, "Ensure Gamma profile (idempotent)");
+        // ---- Step 3: Fetch fun.xyz on-ramp deposit addresses ----
+        step(3, "Fetch fun.xyz on-ramp deposit addresses");
+        FunxyzClient funxyz = new FunxyzClient(FunxyzConfig.builder().build());
+        DepositAddresses funding = funxyz.getDepositAddresses(eoa.address(), wallet).get();
+        System.out.println("    EVM (Polygon):  " + funding.evm().toHex());
+        System.out.println("    Solana:         " + funding.solana());
+        System.out.println("    Tron:           " + funding.tron());
+        System.out.println("    BTC (segwit):   " + funding.btcSegwit());
+
+        // ---- Step 4: Ensure Gamma profile ----
+        step(4, "Ensure Gamma profile (idempotent)");
         gamma.ensureProfile(session, eoa.address(), wallet).get();
         System.out.println("    ✅ profile ensured");
 
-        // ---- Step 4: Deploy if needed ----
+        // ---- Step 5: Deploy if needed ----
         DepositWalletRelayer relayer = new DepositWalletRelayer(RELAYER_HOST, http, session);
         if (deployed) {
-            step(4, "Wallet already deployed — skip");
+            step(5, "Wallet already deployed — skip");
         } else {
-            step(4, "Deploy wallet via WALLET-CREATE");
+            step(5, "Deploy wallet via WALLET-CREATE");
             String txId = relayer.submitWalletCreate(eoa.address(), PolymarketContracts.FACTORY);
             System.out.println("    txnID=" + txId);
             RelayerTxResult result = relayer.waitForTx(txId, RELAYER_POLL_INTERVAL, RELAYER_MAX_ATTEMPTS);
             System.out.println("    state=" + result.state() + " hash=" + result.txHash());
         }
 
-        // ---- Step 5: Approvals batch ----
-        step(5, "Check allowances and approve missing");
+        // ---- Step 6: Approvals batch ----
+        step(6, "Check allowances and approve missing");
         var dwCfg = ContractRegistry.depositWalletConfig(CHAIN_ID).orElseThrow(
                 () -> new IllegalStateException("DepositWallet not deployed on chainId " + CHAIN_ID));
         ApprovalPlanner planner = new ApprovalPlanner(reads, dwCfg);
@@ -179,8 +191,8 @@ public final class FullOnboardAndTradeExample {
             System.out.println("    state=" + result.state() + " hash=" + result.txHash());
         }
 
-        // ---- Step 6: CLOB API credentials ----
-        step(6, "Get CLOB L2 API credentials");
+        // ---- Step 7: CLOB API credentials ----
+        step(7, "Get CLOB L2 API credentials");
         ApiCredentials creds;
         if (envApiKey != null && !envApiKey.isBlank()
                 && envSecret != null && !envSecret.isBlank()
@@ -203,14 +215,14 @@ public final class FullOnboardAndTradeExample {
             System.out.println("      CLOB_PASS_PHRASE=" + creds.passphrase());
         }
 
-        // ---- Step 7: Test order (optional) ----
+        // ---- Step 8: Test order (optional) ----
         if (tokenIdStr == null || tokenIdStr.isBlank()) {
-            step(7, "(skipped — TOKEN_ID not set)");
+            step(8, "(skipped — TOKEN_ID not set)");
             printSection(" ✅ Onboarding complete (no TOKEN_ID, order step skipped)");
             return;
         }
 
-        step(7, "Place test order (token=" + tokenIdStr + ")");
+        step(8, "Place test order (token=" + tokenIdStr + ")");
         BigInteger usdcBalance = reads.erc20BalanceOf(PolymarketContracts.USDC_E, wallet).get();
         System.out.println("    Deposit wallet USDC.e balance: " + usdcBalance);
         if (usdcBalance.compareTo(BigInteger.valueOf(1_000_000L)) < 0) {
@@ -244,7 +256,7 @@ public final class FullOnboardAndTradeExample {
 
     private static void step(int n, String label) {
         System.out.println();
-        System.out.println("[" + n + "/7] " + label);
+        System.out.println("[" + n + "/8] " + label);
     }
 
     private static void printSection(String title) {
