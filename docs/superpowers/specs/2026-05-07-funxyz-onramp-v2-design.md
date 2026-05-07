@@ -61,8 +61,8 @@ content-type     application/json
 
 请求体形状（606 B）:
 {
-  "userId":         "<EOA, 0x... 小写>",   ← 唯一影响返回的字段
-  "recipientAddr":  "<目标钱包, 0x... 小写>", ← fun.xyz 仅记账,不影响返回地址
+  "userId":         "<EOA, 0x... EIP-55 checksum 大小写>",   ← 唯一影响返回的字段
+  "recipientAddr":  "<目标钱包, 0x... EIP-55 checksum 大小写>", ← fun.xyz 仅记账,不影响返回地址
   "toChainId":      "137",
   "toTokenAddress": "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",  ← Polygon USDC.e
   "clientMetadata": { ...UI state 占位骨架, 内容不被校验... }
@@ -150,8 +150,8 @@ FunxyzClient.getDepositAddresses(eoa, recipient)
         │ 同步参数校验（null 检查）
         │
         │ 1. 构造请求体：Jackson ObjectNode
-        │      userId         = eoa.toLowerHex()
-        │      recipientAddr  = recipient.toLowerHex()
+        │      userId         = eoa.toHex()
+        │      recipientAddr  = recipient.toHex()
         │      toChainId      = "137"            ← 常量
         │      toTokenAddress = USDC_E_POLYGON   ← 常量
         │      clientMetadata = CLIENT_METADATA_STUB（写死 JSON 字符串）
@@ -306,7 +306,7 @@ try {
 | # | 场景 | 关键断言 |
 |---|---|---|
 | 1 | 200 + 正常 body | 4 字段非空，`evm` 是 `Address` 类型 |
-| 2 | 请求体形状 | stub 收到 body：`userId / recipientAddr` 是参数小写形式；`toChainId="137"`、`toTokenAddress` 是 USDC.e；`clientMetadata` 存在 |
+| 2 | 请求体形状 | stub 收到 body：`userId / recipientAddr` 是参数 EIP-55 checksum 大小写形式；`toChainId="137"`、`toTokenAddress` 是 USDC.e；`clientMetadata` 存在 |
 | 3 | 请求头 | `x-api-key / origin / referer / content-type` 全到位且值正确 |
 | 4 | `blocked: true` | 抛 `FunxyzException`，`isBlocked() == true` |
 | 5 | HTTP 401 | 抛 `FunxyzException`，`httpStatus() == 401`，message 含 status |

@@ -99,8 +99,8 @@ public final class FunxyzClient {
     private String buildRequestBody(Address eoa, Address recipient) {
         try {
             ObjectNode root = mapper.createObjectNode();
-            root.put("userId", eoa.toLowerHex());
-            root.put("recipientAddr", recipient.toLowerHex());
+            root.put("userId", eoa.toHex());
+            root.put("recipientAddr", recipient.toHex());
             root.put("toChainId", TO_CHAIN_ID);
             root.put("toTokenAddress", USDC_E_POLYGON);
             root.set("clientMetadata", mapper.readTree(CLIENT_METADATA_STUB));

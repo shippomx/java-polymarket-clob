@@ -68,9 +68,9 @@ class FunxyzClientTest {
         // 必填字段全到位
         server.verify(postRequestedFor(urlEqualTo("/v1/eoa"))
                 .withRequestBody(matchingJsonPath("$.userId",
-                        equalTo("0x5f0fe47194fac5fde131c58359b614f520db1342")))
+                        equalTo("0x5f0fE47194FAC5FdE131C58359b614F520Db1342")))
                 .withRequestBody(matchingJsonPath("$.recipientAddr",
-                        equalTo("0xb51b3627e851edeafd81792f012c066805b6dfde")))
+                        equalTo("0xB51b3627E851EdeaFD81792F012C066805b6dFdE")))
                 .withRequestBody(matchingJsonPath("$.toChainId", equalTo("137")))
                 .withRequestBody(matchingJsonPath("$.toTokenAddress",
                         equalTo("0x2791bca1f2de4661ed88a30c99a7a9449aa84174")))
