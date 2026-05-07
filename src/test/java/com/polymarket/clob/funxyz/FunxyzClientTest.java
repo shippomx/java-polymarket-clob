@@ -91,4 +91,23 @@ class FunxyzClientTest {
                 .withHeader("referer", equalTo("https://polymarket.com/"))
                 .withHeader("x-api-key", equalTo("test-key-123")));
     }
+
+    @Test
+    void blockedTrueThrowsBlockedException() {
+        String blockedBody = """
+                {"depositAddr":"0x4C741213d8519429002ab3E69DE9620fb9b48C69",
+                 "solanaAddr":"","tronAddr":"","btcAddrSegwit":"",
+                 "blocked":true}
+                """;
+        server.stubFor(post(urlEqualTo("/v1/eoa")).willReturn(okJson(blockedBody)));
+
+        assertThatThrownBy(() -> client.getDepositAddresses(EOA, RECIPIENT).get())
+                .isInstanceOf(java.util.concurrent.ExecutionException.class)
+                .hasCauseInstanceOf(FunxyzException.class)
+                .satisfies(t -> {
+                    FunxyzException fe = (FunxyzException) t.getCause();
+                    assertThat(fe.isBlocked()).isTrue();
+                    assertThat(fe.httpStatus()).isEqualTo(200);
+                });
+    }
 }
