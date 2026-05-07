@@ -156,4 +156,30 @@ class FunxyzClientTest {
                     assertThat(fe.getMessage()).contains("malformed JSON");
                 });
     }
+
+    @Test
+    void missingDepositAddrThrows() {
+        server.stubFor(post(urlEqualTo("/v1/eoa"))
+                .willReturn(okJson("{\"solanaAddr\":\"x\",\"blocked\":false}")));
+
+        assertThatThrownBy(() -> client.getDepositAddresses(EOA, RECIPIENT).get())
+                .hasCauseInstanceOf(FunxyzException.class)
+                .satisfies(t -> {
+                    FunxyzException fe = (FunxyzException) t.getCause();
+                    assertThat(fe.httpStatus()).isEqualTo(200);
+                    assertThat(fe.getMessage()).contains("missing or malformed depositAddr");
+                });
+    }
+
+    @Test
+    void malformedDepositAddrThrows() {
+        // 非 0x 前缀 + 长度错
+        server.stubFor(post(urlEqualTo("/v1/eoa"))
+                .willReturn(okJson("{\"depositAddr\":\"not-an-address\",\"blocked\":false}")));
+
+        assertThatThrownBy(() -> client.getDepositAddresses(EOA, RECIPIENT).get())
+                .hasCauseInstanceOf(FunxyzException.class)
+                .satisfies(t -> assertThat(((FunxyzException) t.getCause()).getMessage())
+                        .contains("missing or malformed depositAddr"));
+    }
 }
