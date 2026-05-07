@@ -26,6 +26,8 @@ import java.util.Optional;
  * </ul>
  *
  * <p>真链冒烟前置：deposit wallet 至少需要 1 USDC.e 才能下单（CLOB 会拒绝余额不足）。
+ *
+ * <p>如需逐步原语级演示（排障 / 学习用），改用 {@link FullOnboardAndTradeExample}。
  */
 public final class OnboarderExample {
 
