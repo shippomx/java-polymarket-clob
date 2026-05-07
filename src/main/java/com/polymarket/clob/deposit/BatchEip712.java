@@ -100,11 +100,20 @@ public final class BatchEip712 {
     }
 
     private static byte[] padUint256(BigInteger v) {
+        if (v == null) {
+            throw new IllegalArgumentException("uint256 value cannot be null");
+        }
+        if (v.signum() < 0) {
+            throw new IllegalArgumentException("uint256 value cannot be negative: " + v);
+        }
         byte[] raw = v.toByteArray();
         byte[] out = new byte[32];
-        if (raw.length > 32) {
-            // 去除符号位
-            System.arraycopy(raw, raw.length - 32, out, 0, 32);
+        if (raw.length == 33 && raw[0] == 0) {
+            // BigInteger sign byte for values with high bit set; strip it
+            System.arraycopy(raw, 1, out, 0, 32);
+        } else if (raw.length > 32) {
+            throw new IllegalArgumentException(
+                    "value exceeds uint256 range (" + raw.length + " bytes): " + v);
         } else {
             System.arraycopy(raw, 0, out, 32 - raw.length, raw.length);
         }
