@@ -557,6 +557,30 @@ ClobException (RuntimeException)
 
 ---
 
+### Fun.xyz 法币入金地址（v2）
+
+`com.polymarket.clob.funxyz` 包封装了 fun.xyz 的 `POST /v1/eoa`。给定 EOA + recipient（一般是 Polymarket Deposit Wallet），返回 fun.xyz 服务端为该 EOA 持久分配的四链入金中转地址（EVM/Solana/Tron/BTC）。Polymarket 前端用这条接口给"用法币买 USDC.e"准备入金地址。
+
+```java
+import com.polymarket.clob.funxyz.*;
+import com.polymarket.clob.model.Address;
+
+FunxyzClient client = new FunxyzClient(FunxyzConfig.builder().build());
+
+Address eoa       = Address.fromHex("0x5f0fE47194FAC5FdE131C58359b614F520Db1342");
+Address recipient = Address.fromHex("0xB51b3627E851EdeaFD81792F012C066805b6dFdE");
+
+DepositAddresses addrs = client.getDepositAddresses(eoa, recipient).join();
+System.out.println(addrs.evm());        // 0x4C741213d8519429002ab3E69DE9620fb9b48C69
+System.out.println(addrs.solana());     // CobugN8o4CnNVYL9jj7NGRDrdG2hJxAwMiPNZug7N6Pk
+```
+
+`apiKey` 默认是 Polymarket 前端公开 key，可用 `FunxyzConfig.builder().apiKey(...).build()` 覆盖。`recipient` 由调用方决定（如用 `DepositWalletDerivation.predictWalletAddress(eoa)` 派生 Polymarket Deposit Wallet）。
+
+参考 `example/FunxyzAddressLookupExample.java` 跑一个端到端 demo。
+
+---
+
 ## 参考链接
 
 - Polymarket CLOB API: <https://docs.polymarket.com/>
