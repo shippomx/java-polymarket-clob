@@ -73,7 +73,7 @@ public final class FunxyzClient {
                 .POST(HttpRequest.BodyPublishers.ofString(body))
                 .build();
 
-        log.info("funxyz POST /v1/eoa eoa={} recipient={}", eoa.toLowerHex(), recipient.toLowerHex());
+        log.info("funxyz POST /v1/eoa eoa={} recipient={}", eoa.toHex(), recipient.toHex());
 
         return cfg.httpClient()
                 .sendAsync(req, HttpResponse.BodyHandlers.ofString())
