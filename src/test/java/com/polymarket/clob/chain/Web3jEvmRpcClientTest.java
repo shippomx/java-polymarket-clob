@@ -33,7 +33,9 @@ class Web3jEvmRpcClientTest {
 
     @Test
     void ethCallReturnsResultBytes() throws ExecutionException, InterruptedException {
-        server.stubFor(post("/").willReturn(okJson(
+        server.stubFor(post("/")
+                .withRequestBody(matchingJsonPath("$.method", equalTo("eth_call")))
+                .willReturn(okJson(
                 "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x000000000000000000000000ada4563a6738215c56d2b59bc1c5a1db65b1fd78\"}")));
 
         byte[] result = client.ethCall(
@@ -47,7 +49,9 @@ class Web3jEvmRpcClientTest {
 
     @Test
     void getCodeReturnsBytecode() throws ExecutionException, InterruptedException {
-        server.stubFor(post("/").willReturn(okJson(
+        server.stubFor(post("/")
+                .withRequestBody(matchingJsonPath("$.method", equalTo("eth_getCode")))
+                .willReturn(okJson(
                 "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x6080604052\"}")));
 
         byte[] code = client.getCode(Address.fromHex("0xada4563a6738215c56d2b59bc1c5a1db65b1fd78")).get();
@@ -81,5 +85,25 @@ class Web3jEvmRpcClientTest {
 
         assertThatThrownBy(() -> client.getCode(Address.ZERO).get())
                 .hasCauseInstanceOf(EvmRpcException.class);
+    }
+
+    @Test
+    void nonHexResultThrowsException() {
+        server.stubFor(post("/").willReturn(okJson(
+                "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"deadbeef\"}")));
+
+        assertThatThrownBy(() -> client.ethCall(Address.ZERO, new byte[0]).get())
+                .hasCauseInstanceOf(EvmRpcException.class)
+                .hasMessageContaining("not 0x-prefixed");
+    }
+
+    @Test
+    void missingResultFieldThrowsException() {
+        server.stubFor(post("/").willReturn(okJson(
+                "{\"jsonrpc\":\"2.0\",\"id\":1}")));
+
+        assertThatThrownBy(() -> client.ethCall(Address.ZERO, new byte[0]).get())
+                .hasCauseInstanceOf(EvmRpcException.class)
+                .hasMessageContaining("missing 'result'");
     }
 }

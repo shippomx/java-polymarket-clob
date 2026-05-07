@@ -20,6 +20,8 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public final class Web3jEvmRpcClient implements EvmRpcClient {
 
+    private static final HexFormat HEX = HexFormat.of();
+
     private final URI endpoint;
     private final HttpClient http;
     private final ObjectMapper mapper;
@@ -39,7 +41,7 @@ public final class Web3jEvmRpcClient implements EvmRpcClient {
     public CompletableFuture<byte[]> ethCall(Address to, byte[] callData) {
         String body = """
                 {"jsonrpc":"2.0","id":%d,"method":"eth_call","params":[{"to":"%s","data":"0x%s"},"latest"]}"""
-                .formatted(idSeq.getAndIncrement(), to.toLowerHex(), HexFormat.of().formatHex(callData));
+                .formatted(idSeq.getAndIncrement(), to.toLowerHex(), HEX.formatHex(callData));
         return send(body, "eth_call");
     }
 
@@ -68,16 +70,21 @@ public final class Web3jEvmRpcClient implements EvmRpcClient {
                     String msg = error.path("message").asText("rpc error");
                     throw new EvmRpcException(method + " rpc error: " + msg);
                 }
-                String hex = root.path("result").asText("");
+                JsonNode resultNode = root.get("result");
+                if (resultNode == null || resultNode.isNull()) {
+                    throw new EvmRpcException(method + " response missing 'result' field");
+                }
+                String hex = resultNode.asText("");
                 if (!hex.startsWith("0x")) {
                     throw new EvmRpcException(method + " result not 0x-prefixed: " + hex);
                 }
                 if (hex.length() == 2) return new byte[0];
-                return HexFormat.of().parseHex(hex.substring(2));
+                return HEX.parseHex(hex.substring(2));
             } catch (EvmRpcException e) {
                 throw e;
             } catch (Exception e) {
-                throw new EvmRpcException(method + " parse failure: " + e.getMessage(), e);
+                throw new EvmRpcException(method + " parse failure: " + e.getClass().getSimpleName()
+                        + (e.getMessage() != null ? ": " + e.getMessage() : ""), e);
             }
         });
     }
