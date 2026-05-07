@@ -19,6 +19,10 @@ import java.util.concurrent.CompletionException;
  * fun.xyz 法币入金地址客户端。封装单接口 {@code POST /v1/eoa}：给定 EOA + recipient，
  * 返回该 EOA 在 fun.xyz 上固定映射的四链入金中转地址。
  *
+ * <p>构造时会同步从 fun.xyz CDN 拉取 apiKey（最长 {@code flagsRequestTimeout}，默认 4s），
+ * 拉取失败回退到 {@link FunxyzConfig#DEFAULT_PUBLIC_API_KEY}。如果调用方在 builder 中显式
+ * 传入 {@link FunxyzConfig.Builder#apiKey(String)}，则跳过 CDN 调用。建议复用实例。</p>
+ *
  * <p>线程安全：本类无可变状态，{@link java.net.http.HttpClient} 自身线程安全。同一实例可并发调用。</p>
  */
 public final class FunxyzClient {

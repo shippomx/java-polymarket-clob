@@ -10,7 +10,6 @@ import java.net.URI;
 import java.time.Duration;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static org.assertj.core.api.Assertions.assertThat;
 
 class FunxyzClientCdnResolveTest {
 
