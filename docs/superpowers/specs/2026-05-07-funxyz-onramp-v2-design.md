@@ -217,7 +217,7 @@ if (!depositAddr.startsWith("0x") || depositAddr.length() != 42) {
 }
 
 return new DepositAddresses(
-    Address.of(depositAddr),
+    Address.fromHex(depositAddr),
     root.path("solanaAddr").asText(""),
     root.path("tronAddr").asText(""),
     root.path("btcAddrSegwit").asText("")
@@ -299,7 +299,7 @@ try {
 
 ### 6.1 单元测试 `FunxyzClientTest`
 
-`mvn test` 默认跑，**不打外网**。技法：JDK 自带 `com.sun.net.httpserver.HttpServer` 起本地 stub 服务，把 `FunxyzConfig.baseUrl()` 指向 stub。**不引入 WireMock**（pom 里没有，不为单测加依赖）。
+`mvn test` 默认跑，**不打外网**。技法：用项目已有的 **WireMock 3.9.2**（test scope，所有 `gamma/` 单测都用这个），把 `FunxyzConfig.baseUrl()` 指向 `URI.create(server.baseUrl())`。沿用项目惯例不引新依赖。
 
 7 个用例：
 
