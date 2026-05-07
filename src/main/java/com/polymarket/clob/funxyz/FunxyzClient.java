@@ -161,8 +161,38 @@ public final class FunxyzClient {
         if (cfg.apiKey() != null) {
             return cfg.apiKey();
         }
-        // CDN 路径占位:Task 3 实现真实拉取逻辑。
-        return FunxyzConfig.DEFAULT_PUBLIC_API_KEY;
+        try {
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(cfg.flagsConfigUrl())
+                    .timeout(cfg.flagsRequestTimeout())
+                    .GET()
+                    .build();
+            HttpResponse<String> resp = cfg.httpClient()
+                    .send(req, HttpResponse.BodyHandlers.ofString());
+            if (resp.statusCode() != 200) {
+                throw new IllegalStateException(
+                        "funxyz CDN returned status " + resp.statusCode());
+            }
+            JsonNode root = mapper.readTree(resp.body());
+            String key = root.path("flags")
+                             .path("token_transfer_source_chains_and_assets")
+                             .path("overrides").path(0)
+                             .path("if_any").path(0)
+                             .path("values").path(0)
+                             .asText("");
+            if (key.isEmpty()) {
+                throw new IllegalStateException("funxyz CDN apiKey path missing or empty");
+            }
+            log.info("funxyz CDN apiKey resolved (length={})", key.length());
+            return key;
+        } catch (Exception e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            log.warn("funxyz CDN apiKey resolve failed: {}, falling back to DEFAULT_PUBLIC_API_KEY",
+                    e.toString());
+            return FunxyzConfig.DEFAULT_PUBLIC_API_KEY;
+        }
     }
 
     private static String truncate(String s, int max) {
