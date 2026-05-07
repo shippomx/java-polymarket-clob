@@ -93,18 +93,20 @@ public final class DepositWalletReads {
     }
 
     private static Address decodeAddress(byte[] returnData) {
-        if (returnData == null || returnData.length < 32) {
-            throw new EvmRpcException("expected 32B address return, got " + (returnData == null ? -1 : returnData.length));
+        if (returnData == null || returnData.length != 32) {
+            throw new EvmRpcException("expected exactly 32B address return, got "
+                    + (returnData == null ? -1 : returnData.length));
         }
-        byte[] addr = Arrays.copyOfRange(returnData, returnData.length - 20, returnData.length);
+        byte[] addr = Arrays.copyOfRange(returnData, 12, 32);
         return Address.fromBytes(addr);
     }
 
     private static BigInteger decodeUint256(byte[] returnData) {
-        if (returnData == null || returnData.length < 32) {
-            throw new EvmRpcException("expected 32B uint256 return, got " + (returnData == null ? -1 : returnData.length));
+        if (returnData == null || returnData.length != 32) {
+            throw new EvmRpcException("expected exactly 32B uint256 return, got "
+                    + (returnData == null ? -1 : returnData.length));
         }
-        return new BigInteger(1, Arrays.copyOfRange(returnData, returnData.length - 32, returnData.length));
+        return new BigInteger(1, returnData);
     }
 
     private static boolean decodeBool(byte[] returnData) {

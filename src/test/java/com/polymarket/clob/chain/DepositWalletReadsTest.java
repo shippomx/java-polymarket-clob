@@ -10,6 +10,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class DepositWalletReadsTest {
 
@@ -42,21 +43,35 @@ class DepositWalletReadsTest {
     @Test
     void predictWalletAddressEncodesSelectorAndArgs() throws Exception {
         StubRpc rpc = new StubRpc();
-        // 32B 返回值 = padded wallet 地址
         rpc.willReturnCall(HexFormat.of().parseHex(
                 "000000000000000000000000ada4563a6738215c56d2b59bc1c5a1db65b1fd78"));
 
         Address result = new DepositWalletReads(rpc, 137).predictWalletAddress(EOA).get();
 
         assertThat(result).isEqualTo(WALLET);
-        // selector keccak256("predictWalletAddress(address,bytes32)")[:4] = 0x...
-        // 验证 calldata 长度 = 4 + 32 + 32 = 68
-        assertThat(rpc.lastCall()).hasSize(68);
-        // 后 32 字节 = pad32(EOA) = 12 个 0 + 20B EOA
-        byte[] eoaArg = java.util.Arrays.copyOfRange(rpc.lastCall(), 36, 68);
-        byte[] expectedPad = new byte[32];
-        System.arraycopy(EOA.toBytes(), 0, expectedPad, 12, 20);
-        assertThat(eoaArg).containsExactly(expectedPad);
+
+        byte[] calldata = rpc.lastCall();
+        assertThat(calldata).hasSize(68);
+
+        // 0..4 = selector keccak256("predictWalletAddress(address,bytes32)")[:4]
+        byte[] selector = java.util.Arrays.copyOfRange(calldata, 0, 4);
+        byte[] expectedSelector = java.util.Arrays.copyOfRange(
+                org.web3j.crypto.Hash.sha3(
+                        "predictWalletAddress(address,bytes32)".getBytes(java.nio.charset.StandardCharsets.US_ASCII)),
+                0, 4);
+        assertThat(selector).containsExactly(expectedSelector);
+
+        // 4..36 = padded IMPLEMENTATION (first arg)
+        byte[] implArg = java.util.Arrays.copyOfRange(calldata, 4, 36);
+        byte[] expectedImpl = new byte[32];
+        System.arraycopy(PolymarketContracts.IMPLEMENTATION.toBytes(), 0, expectedImpl, 12, 20);
+        assertThat(implArg).containsExactly(expectedImpl);
+
+        // 36..68 = padded EOA (second arg, bytes32 slot)
+        byte[] eoaArg = java.util.Arrays.copyOfRange(calldata, 36, 68);
+        byte[] expectedEoa = new byte[32];
+        System.arraycopy(EOA.toBytes(), 0, expectedEoa, 12, 20);
+        assertThat(eoaArg).containsExactly(expectedEoa);
     }
 
     @Test
@@ -106,6 +121,37 @@ class DepositWalletReadsTest {
                 "0000000000000000000000000000000000000000000000000000000000000000"));
         assertThat(new DepositWalletReads(rpc, 137)
                 .ctfApprovedForAll(WALLET, PolymarketContracts.EXCHANGE_V2).get()).isFalse();
+    }
+
+    @Test
+    void unsupportedChainIdThrows() {
+        StubRpc rpc = new StubRpc();
+        DepositWalletReads reads = new DepositWalletReads(rpc, 1);  // mainnet, not Polygon
+        assertThatThrownBy(() -> reads.predictWalletAddress(EOA).get())
+                .isInstanceOfAny(EvmRpcException.class, java.util.concurrent.ExecutionException.class)
+                .hasMessageContaining("chainId 1");
+    }
+
+    @Test
+    void erc20AllowanceEncodesOwnerThenSpender() throws Exception {
+        StubRpc rpc = new StubRpc();
+        rpc.willReturnCall(HexFormat.of().parseHex(
+                "0000000000000000000000000000000000000000000000000000000000000000"));
+
+        new DepositWalletReads(rpc, 137)
+                .erc20Allowance(PolymarketContracts.USDC_E, WALLET, PolymarketContracts.CTF).get();
+
+        byte[] calldata = rpc.lastCall();
+        // 4..36 = owner (WALLET)
+        byte[] ownerArg = java.util.Arrays.copyOfRange(calldata, 4, 36);
+        byte[] expectedOwner = new byte[32];
+        System.arraycopy(WALLET.toBytes(), 0, expectedOwner, 12, 20);
+        assertThat(ownerArg).containsExactly(expectedOwner);
+        // 36..68 = spender (CTF)
+        byte[] spenderArg = java.util.Arrays.copyOfRange(calldata, 36, 68);
+        byte[] expectedSpender = new byte[32];
+        System.arraycopy(PolymarketContracts.CTF.toBytes(), 0, expectedSpender, 12, 20);
+        assertThat(spenderArg).containsExactly(expectedSpender);
     }
 
     @Test
