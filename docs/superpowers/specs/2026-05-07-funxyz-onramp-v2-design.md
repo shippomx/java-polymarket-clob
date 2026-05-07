@@ -52,7 +52,7 @@
 
 ```
 URL              POST https://api.fun.xyz/v1/eoa
-Auth             header x-api-key: <Polymarket public key, 26 字符>
+Auth             header x-api-key: <Polymarket public key, 40 字符>
                  默认值 = "Y53dikxXdT4E3afI1l8BMBSWgyhKvf65k6Dut1k6"
                  来源：polymarket.com 前端硬编码（非用户私密）
 弱 CORS 头       origin:  https://polymarket.com

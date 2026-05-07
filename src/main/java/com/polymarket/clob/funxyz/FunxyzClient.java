@@ -13,6 +13,7 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 /**
  * fun.xyz 法币入金地址客户端。封装单接口 {@code POST /v1/eoa}：给定 EOA + recipient，
@@ -78,14 +79,18 @@ public final class FunxyzClient {
                 .sendAsync(req, HttpResponse.BodyHandlers.ofString())
                 .handle((resp, err) -> {
                     if (err != null) {
-                        if (err instanceof HttpTimeoutException) {
+                        // CompletableFuture.handle() may receive CompletionException wrapping the cause
+                        // depending on which internal stage of sendAsync fails. Unwrap defensively.
+                        Throwable cause = err instanceof CompletionException ce && ce.getCause() != null
+                                ? ce.getCause() : err;
+                        if (cause instanceof HttpTimeoutException) {
                             throw new FunxyzException(
                                     "funxyz request timed out after "
                                             + cfg.requestTimeout().toSeconds() + "s",
-                                    -1, err);
+                                    -1, cause);
                         }
                         throw new FunxyzException(
-                                "funxyz request failed: " + err.getMessage(), -1, err);
+                                "funxyz request failed: " + cause.getMessage(), -1, cause);
                     }
                     return parseResponse(resp);
                 });
