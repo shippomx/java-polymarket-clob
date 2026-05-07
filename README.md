@@ -2,15 +2,18 @@
 
 [![Java](https://img.shields.io/badge/Java-17-orange.svg)](https://openjdk.org/projects/jdk/17/)
 [![Maven](https://img.shields.io/badge/build-maven-blue.svg)](https://maven.apache.org/)
-[![Status](https://img.shields.io/badge/status-0.1.0--SNAPSHOT-yellow.svg)]()
+[![Status](https://img.shields.io/badge/status-2.0.0-green.svg)]()
+
+> ⚠️ **v2 已切换到 Deposit Wallet 流，与 v1 Safe 流不兼容。**
+> 升级路径见 `CHANGELOG.md`。
 
 Polymarket CLOB（中央限价订单簿）API 的 Java 17 SDK，支持 V1 及 V2 版本，覆盖：
 
 - REST 端点（市场数据 / 认证 / 账户 / 下单 / 成交 / 心跳 / Builder）
 - WebSocket 订阅（行情 + 用户态）
 - EIP-712 订单签名（CTF Exchange v1 + v2，2026-04-28 起 Polygon 主网默认 v2）
-- Gasless 链上流水线（Builder-Relayer + Gnosis Safe）
-- L1 / L2 头部构造，Safe / EOA / Proxy / EIP-1271 全签名类型
+- Deposit Wallet 链上流水线（CWIA 最小代理 + DepositWalletRelayer）
+- L1 / L2 头部构造，EOA / EIP-1271（POLY_1271）全签名类型
 
 GroupId / ArtifactId：`com.polymarket:clob-client`
 
@@ -28,7 +31,9 @@ GroupId / ArtifactId：`com.polymarket:clob-client`
   - [4. WebSocket 订阅](#4-websocket-订阅)
   - [5. 心跳维持订单优先级](#5-心跳维持订单优先级)
   - [6. Builder 模式](#6-builder-模式)
-  - [7. Gasless 链上流水线](#7-gasless-链上流水线)
+- [链支持](#链支持)
+- [真链冒烟](#真链冒烟)
+- [从 v1 (Safe 流) 迁移到 v2](#从-v1-safe-流-迁移到-v2)
 - [可运行示例](#可运行示例)
 - [构建与测试](#构建与测试)
 - [技术栈与依赖](#技术栈与依赖)
@@ -67,6 +72,26 @@ try (ClobClient client = ClobClient.builder()
     System.out.println("server time = " + client.market().serverTime().join());
 }
 ```
+
+## Quickstart
+
+```java
+import com.polymarket.clob.auth.LocalSigner;
+import com.polymarket.clob.onboard.Onboarder;
+import com.polymarket.clob.onboard.OnboardingConfig;
+import java.net.URI;
+
+var eoa = LocalSigner.fromPrivateKeyHex(System.getenv("PK"));
+var cfg = OnboardingConfig.builder()
+        .rpcUrl(URI.create("https://polygon-rpc.com"))
+        .build();
+
+var result = new Onboarder(cfg).run(eoa).get();
+System.out.println("Wallet:  " + result.wallet().toHex());
+System.out.println("API key: " + result.creds().apiKey());
+```
+
+完整端到端 + 下单见 `src/main/java/com/polymarket/clob/example/DepositWalletOnboardAndTradeExample.java`。
 
 ---
 
@@ -119,13 +144,40 @@ com.polymarket.clob
 │   ├── ClobAuth                     # ClobAuth EIP-712 typed data
 │   ├── L1HeaderBuilder              # POLY_ADDRESS/SIGNATURE/TIMESTAMP/NONCE
 │   ├── L2HeaderBuilder              # POLY_API_KEY/PASSPHRASE/TIMESTAMP/SIGNATURE (HMAC)
-│   ├── WalletDerivation             # EOA → Polymarket Safe / Proxy 派生
-│   ├── SignatureType                # EOA(0) / POLY_PROXY(1) / POLY_GNOSIS_SAFE(2) / POLY_1271(3)
-│   └── builder/                     # BuilderConfig + BuilderHeaderBuilder
+│   ├── BuilderConfig                # Builder API 凭证配置
+│   ├── BuilderHeaderBuilder         # POLY_BUILDER_* 头部构造
+│   └── SignatureType                # EOA(0) / POLY_1271(3)
+│
+├── chain/                           # EVM 链读写
+│   ├── EvmRpcClient / Web3jEvmRpcClient
+│   ├── DepositWalletReads           # 链上读：nonce / isDeployed / predictAddress
+│   ├── DepositWalletConfig          # 合约地址配置
+│   └── PolymarketContracts          # Polygon 主网合约常量
+│
+├── deposit/                         # Deposit Wallet 链上流水线
+│   ├── DepositWalletDerivation      # EOA → CWIA 最小代理地址派生
+│   ├── DepositWalletRelayer         # deploy / setupApprovals / submit
+│   ├── ApprovalPlanner              # 计算待授权集合
+│   ├── BatchEip712                  # 批量 EIP-712 签名封装
+│   ├── Call / SignedBatch
+│   └── RelayerTx / RelayerTxResult / RelayerTxFailedException
+│
+├── gamma/                           # Gamma API（SIWE 登录 + 用户档案）
+│   ├── GammaClient
+│   ├── GammaSession
+│   ├── GammaAuthException
+│   └── SiweMessage
+│
+├── onboard/                         # 一键 onboarding 编排
+│   ├── Onboarder                    # EOA → Deposit Wallet → L2 凭证 → 下单
+│   ├── OnboardingConfig
+│   ├── OnboardingResult
+│   └── TestOrderArgs
 │
 ├── order/                           # 订单构造 / 签名 / 序列化
 │   ├── OrderBuilder                 # create+sign 一站式
 │   ├── EIP712OrderSigner            # CTF Exchange v1 / v2 EIP-712 摘要
+│   ├── Pol1271OrderSigner           # ERC-7739 嵌套 TypedDataSign（POLY_1271）
 │   ├── LimitOrderArgs / MarketOrderArgs (+V2)
 │   ├── Order / SignedOrder / OrderV2 / SignedOrderV2
 │   ├── OrderType                    # GTC / GTD / FOK / FAK
@@ -143,15 +195,6 @@ com.polymarket.clob
 │   ├── message/                     # BookUpdate / PriceChange / TickSizeChange / TradeMessage / OrderMessage / LastTradePrice
 │   └── request/                     # Channel / Operation / SubscriptionRequest
 │
-├── gasless/                         # 链上 gasless 流水线（Builder-Relayer 委托）
-│   ├── GaslessRelayer               # 主入口：deploy / execute / setupApprovals / prepare* + submit
-│   ├── SafeEip712                   # Safe v1.3.0 execTransaction + SafeProxyFactory createProxy 摘要
-│   ├── SafeSignatures               # ECDSA v 调整、yParity 归一
-│   ├── MultiSend                    # Gnosis MultiSend payload 编码
-│   ├── Calldata                     # ERC20 approve/transfer、ERC1155 setApprovalForAll、CTF redeemPositions
-│   ├── RelayerTx / SafeTxPayload / SafeTxStyle / RelayerTxResult
-│   └── Words                        # 32-byte 字节工具
-│
 ├── http/                            # 传输底层
 │   ├── HttpTransport                # 基于 java.net.http.HttpClient
 │   ├── JsonCodec / ClobTypesModule  # Jackson 配置 + 自定义类型（BigInteger / hex / Side / ...）
@@ -161,8 +204,8 @@ com.polymarket.clob
 │
 ├── model/                           # 通用领域模型
 │   ├── Address / Hash32             # 0x… EVM 类型，强校验
-│   ├── ChainId                      # POLYGON=137 / AMOY=80002
-│   ├── ContractConfig / ContractRegistry / WalletContractConfig
+│   ├── ChainId                      # POLYGON=137
+│   ├── ContractConfig / ContractRegistry
 │   ├── AssetType                    # COLLATERAL / CONDITIONAL
 │   └── BalanceAllowance* / BanStatusResponse / ApiKeysResponse
 │
@@ -182,7 +225,7 @@ com.polymarket.clob
 │   ├── ClobSerializationException
 │   └── ClobSignatureException
 │
-└── example/                         # 9 个开箱即用 main(String[]) 演示
+└── example/                         # 开箱即用 main(String[]) 演示
 ```
 
 ---
@@ -252,10 +295,8 @@ try (ClobClient base = ClobClient.builder()
 
 | `SignatureType` | code | funder 派生 | 适用场景 |
 |-----------------|------|-------------|----------|
-| `EOA`              | 0 | EOA 自身 | 直签下单，资金留在 EOA |
-| `POLY_PROXY`       | 1 | CREATE2 派生 Proxy | Polymarket 标准用户钱包 |
-| `POLY_GNOSIS_SAFE` | 2 | Safe Proxy Factory | Safe 1/N owner |
-| `POLY_1271`        | 3 | 调用方提供 | 仅 V2 订单；EIP-1271 智能合约签名 |
+| `EOA`       | 0 | EOA 自身 | 直签下单，资金留在 EOA |
+| `POLY_1271` | 3 | Deposit Wallet（CWIA 最小代理） | V2 订单；EIP-1271 智能合约签名（v2 推荐） |
 
 ### 3. 下单 / 撤单 / 查询
 
@@ -389,39 +430,43 @@ builder.getBuilderTrades(TradesRequest.none())
 builder.listBuilderApiKeys().join().forEach(System.out::println);
 ```
 
-### 7. Gasless 链上流水线
+---
 
-通过 Polymarket Builder-Relayer 委托所有链上动作（部署 Safe、approve、execTransaction），EOA **不需要持有 MATIC**：
+## 链支持
 
-```java
-import com.polymarket.clob.gasless.*;
-import com.polymarket.clob.auth.builder.BuilderConfig;
+v2 仅支持 **Polygon 主网**（chainId = 137）。Amoy 测试网支持已在本版本移除。
 
-GaslessRelayer relayer = GaslessRelayer.create(
-        URI.create("https://relayer-v2.polymarket.com"),
-        BuilderConfig.local(builderCreds));
+---
 
-// 1) 检测 Safe 是否已部署
-boolean deployed = relayer.isDeployed(safeAddress).join();
+## 真链冒烟
 
-// 2) 未部署：发起 SAFE-CREATE
-if (!deployed) {
-    RelayerTxResult r = relayer.deploy(safeAddress, signer).join();
-    relayer.waitForTx(r.transactionId()).join();
-}
-
-// 3) 一次性把 USDC.approve + CTF.setApprovalForAll 等 6 笔授权打包成一条 SafeTx（nonce=0）
-RelayerTxResult ap = relayer.setupApprovals(safeAddress, signer).join();
-relayer.waitForTx(ap.transactionId()).join();
+```bash
+export PK=0x<你的 EOA 私钥>
+export RPC_URL=https://polygon-rpc.com         # 可选
+export TOKEN_ID=<某 outcome token id>          # 可选；不传只跑 onboarding
+mvn -q exec:java -Dexec.mainClass=com.polymarket.clob.example.DepositWalletOnboardAndTradeExample
 ```
 
-参见完整端到端示例 `EndToEndOnboardingExample`：从 EOA 私钥起步，自举 L2 凭证 + Builder Key + Safe 部署 + 授权 + V2 下单。
+下单前需确保 deposit wallet 持有 ≥ 1 USDC.e。
+
+---
+
+## 从 v1 (Safe 流) 迁移到 v2
+
+详见 `CHANGELOG.md`。常用对照：
+
+| v1 | v2 |
+|---|---|
+| `WalletDerivation.deriveSafeWallet(...)` | `new DepositWalletDerivation(reads).predictWalletAddress(...)` |
+| `GaslessRelayer` | `DepositWalletRelayer` |
+| `SignatureType.POLY_PROXY / POLY_GNOSIS_SAFE` | `SignatureType.POLY_1271`（强制） |
+| `EndToEndOnboardingExample` | `DepositWalletOnboardAndTradeExample` |
 
 ---
 
 ## 可运行示例
 
-`src/main/java/com/polymarket/clob/example/` 下 9 个 `main(String[])` 入口：
+`src/main/java/com/polymarket/clob/example/` 下 `main(String[])` 入口：
 
 | 类 | 用途 | 关键环境变量 |
 |----|------|-------------|
@@ -431,9 +476,7 @@ relayer.waitForTx(ap.transactionId()).join();
 | `WebSocketOrderBookExample` | market / user 双模式 WS | `MODE` `ASSET_IDS` `MARKETS` `DURATION_SECONDS` |
 | `HeartbeatExample` | 单次 / 调度模式心跳 | `MODE=once|scheduler` |
 | `BuilderExample` | promote 到 Builder 客户端 | `BUILDER_API_KEY/SECRET/PASSPHRASE` 或 `BUILDER_REMOTE_HOST` |
-| `SafeWalletExample` | 链上自付 gas 部署 Safe + 授权 | 需要 EOA 持有 MATIC |
-| `EndToEndOnboardingExample` | 完整 gasless 冷启动流水线 | `CLOB_PRIVATE_KEY` + Polymarket relayer 凭证 |
-| `PolymarketBridge` | Bridge 充值地址查询 | （SDK 工具类，非 main） |
+| `DepositWalletOnboardAndTradeExample` | 完整 Deposit Wallet 冷启动流水线（v2） | `PK` `RPC_URL` `TOKEN_ID` |
 
 运行：
 
@@ -443,7 +486,7 @@ mvn -B compile exec:java \
     -Dexec.mainClass=com.polymarket.clob.example.AuthenticatedExample
 ```
 
-> 所有示例默认 `Polygon` 主网，可通过 `CLOB_CHAIN_ID=AMOY` 切到测试网。涉及下单的示例默认 dry-run，必须显式 `CLOB_SUBMIT=1` 才会真正提交订单。
+> 所有示例默认 `Polygon` 主网。涉及下单的示例默认 dry-run，必须显式 `CLOB_SUBMIT=1` 才会真正提交订单。
 
 ---
 
