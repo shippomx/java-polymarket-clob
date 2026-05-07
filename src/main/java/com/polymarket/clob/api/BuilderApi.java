@@ -15,7 +15,7 @@ import java.util.concurrent.CompletableFuture;
  *   <li>{@link #createBuilderApiKey}: {@code POST /auth/builder-api-key}。
  *       仅需要 L2 认证（不需要 Builder 头），因此任何已认证的用户都可调用；
  *       成功时返回一组新的 {@link ApiCredentials}，由调用方自行保存作为后续
- *       {@link com.polymarket.clob.auth.builder.BuilderConfig.Local} 的 secret 来源。</li>
+ *       {@link com.polymarket.clob.auth.BuilderConfig.Local} 的 secret 来源。</li>
  *   <li>{@link #builderApiKeys}: {@code GET /auth/builder-api-key}。
  *       L2 + Builder 头，列出当前 Builder 账户已注册的 Key 列表。</li>
  *   <li>{@link #revokeBuilderApiKey}: {@code DELETE /auth/builder-api-key}。
@@ -32,7 +32,7 @@ public interface BuilderApi {
 
     /**
      * L2 + Builder：列出 Builder Key。调用方需在 {@code builderHeaders} 传入
-     * 由 {@link com.polymarket.clob.auth.builder.BuilderHeaderBuilder} 生成的扩展头。
+     * 由 {@link com.polymarket.clob.auth.BuilderHeaderBuilder} 生成的扩展头。
      */
     CompletableFuture<List<BuilderApiKeyResponse>> builderApiKeys(
             Address caller,

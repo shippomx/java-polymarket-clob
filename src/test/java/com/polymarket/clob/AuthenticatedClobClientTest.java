@@ -5,7 +5,7 @@ import com.polymarket.clob.auth.ApiCredentials;
 import com.polymarket.clob.auth.LocalSigner;
 import com.polymarket.clob.auth.SignatureType;
 import com.polymarket.clob.auth.Signer;
-import com.polymarket.clob.auth.builder.BuilderConfig;
+import com.polymarket.clob.auth.BuilderConfig;
 import com.polymarket.clob.exception.ClobAuthException;
 import com.polymarket.clob.heartbeat.HeartbeatResponse;
 import com.polymarket.clob.heartbeat.HeartbeatScheduler;

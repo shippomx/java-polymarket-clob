@@ -8,7 +8,7 @@ import com.polymarket.clob.auth.ApiCredentials;
 import com.polymarket.clob.auth.LocalSigner;
 import com.polymarket.clob.auth.SignatureType;
 import com.polymarket.clob.auth.Signer;
-import com.polymarket.clob.auth.builder.BuilderConfig;
+import com.polymarket.clob.auth.BuilderConfig;
 import com.polymarket.clob.model.ChainId;
 import com.polymarket.clob.trade.BuilderTrade;
 import com.polymarket.clob.trade.Trade;

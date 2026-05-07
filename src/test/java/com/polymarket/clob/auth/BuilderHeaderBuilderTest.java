@@ -1,8 +1,6 @@
-package com.polymarket.clob.auth.builder;
+package com.polymarket.clob.auth;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
-import com.polymarket.clob.auth.ApiCredentials;
-import com.polymarket.clob.auth.L2HeaderBuilder;
 import com.polymarket.clob.exception.ClobAuthException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;

@@ -1,6 +1,4 @@
-package com.polymarket.clob.auth.builder;
-
-import com.polymarket.clob.auth.ApiCredentials;
+package com.polymarket.clob.auth;
 
 import java.net.URI;
 import java.util.Objects;

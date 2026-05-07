@@ -1,11 +1,9 @@
-package com.polymarket.clob.auth.builder;
+package com.polymarket.clob.auth;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.polymarket.clob.auth.ApiCredentials;
-import com.polymarket.clob.auth.L2HeaderBuilder;
 import com.polymarket.clob.exception.ClobAuthException;
 import com.polymarket.clob.exception.ClobSerializationException;
 import com.polymarket.clob.http.JsonCodec;
@@ -88,8 +86,6 @@ public final class BuilderHeaderBuilder {
         Objects.requireNonNull(method, "method");
         Objects.requireNonNull(path, "path");
         String safeBody = body == null ? "" : body.replace('\'', '"');
-        // JDK 17 sealed switch pattern 仍是预览特性；这里退回 instanceof + 常规强转，
-        // 等 backlog N4（JDK 21+ 基线）切换时再升级。
         if (config instanceof BuilderConfig.Local local) {
             return CompletableFuture.completedFuture(
                     buildLocal(local.credentials(), method, path, safeBody, timestamp));
@@ -161,7 +157,6 @@ public final class BuilderHeaderBuilder {
                         throw new ClobAuthException(
                                 "Remote Builder response missing required fields: " + resp.body());
                     }
-                    // 注意：字段顺序与 local 分支对齐，便于日志直接 diff
                     Map<String, String> headers = new LinkedHashMap<>();
                     headers.put(POLY_BUILDER_API_KEY, parsed.poly_builder_api_key);
                     headers.put(POLY_BUILDER_PASSPHRASE,
