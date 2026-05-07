@@ -90,6 +90,14 @@ public final class FullOnboardAndTradeExample {
             run();
         } catch (Throwable t) {
             System.err.println("\n❌ Test failed: " + t.getMessage());
+            Throwable cause = t;
+            while (cause != null) {
+                if (cause instanceof com.polymarket.clob.exception.ClobApiException e) {
+                    System.err.println("    upstream body: " + e.getBody());
+                    break;
+                }
+                cause = cause.getCause();
+            }
             t.printStackTrace(System.err);
             System.exit(1);
         }
@@ -97,12 +105,10 @@ public final class FullOnboardAndTradeExample {
 
     private static void run() throws Exception {
         // ---- 解析环境变量 ----
-        String pk = System.getenv("PK");
-        if (pk == null || pk.isBlank()) {
-            throw new IllegalStateException("set PK env var (EOA private key)");
-        }
-        String rpcUrl = Optional.ofNullable(System.getenv("RPC_URL")).orElse(DEFAULT_RPC_URL);
-        String tokenIdStr = System.getenv("TOKEN_ID");
+        String pk = "0x582218b470497c1640cf05a529ca073e86931bfec9a3500703aaf0b3bcb3baa7";
+        String tokenIdStr = "8501497159083948713316135768103773293754490207922884688769443031624417212426";
+
+        String rpcUrl = "https://polygon.drpc.org";
         String clobUrl = Optional.ofNullable(System.getenv("CLOB_API_URL")).orElse(DEFAULT_CLOB_URL);
         String envApiKey = System.getenv("CLOB_API_KEY");
         String envSecret = System.getenv("CLOB_SECRET");
@@ -114,11 +120,6 @@ public final class FullOnboardAndTradeExample {
         printSection(" Polymarket Deposit Wallet Onboard + Trade Test (Java, primitive-level)");
         System.out.println("EOA:     " + eoa.address().toHex());
         System.out.println("Chain:   Polygon (" + CHAIN_ID + ")");
-        if (tokenIdStr == null || tokenIdStr.isBlank()) {
-            System.out.println("Mode:    onboard only (TOKEN_ID not set, will skip step 7)");
-        } else {
-            System.out.println("Mode:    onboard + trade (token=" + tokenIdStr + ")");
-        }
 
         // ---- Step 1: Gamma SIWE login ----
         step(1, "Gamma SIWE login → relayer cookie");
@@ -225,10 +226,10 @@ public final class FullOnboardAndTradeExample {
         step(8, "Place test order (token=" + tokenIdStr + ")");
         BigInteger usdcBalance = reads.erc20BalanceOf(PolymarketContracts.USDC_E, wallet).get();
         System.out.println("    Deposit wallet USDC.e balance: " + usdcBalance);
-        if (usdcBalance.compareTo(BigInteger.valueOf(1_000_000L)) < 0) {
-            System.out.println("    ⚠️  Wallet has < 1 USDC — order will likely be rejected by CLOB.");
-            System.out.println("       Send some USDC.e to " + wallet.toHex() + " and re-run.");
-        }
+        // if (usdcBalance.compareTo(BigInteger.valueOf(1_000_000L)) < 0) {
+        //     System.out.println("    ⚠️  Wallet has < 1 USDC — order will likely be rejected by CLOB.");
+        //     System.out.println("       Send some USDC.e to " + wallet.toHex() + " and re-run.");
+        // }
 
         try (ClobClient base = ClobClient.builder()
                 .endpoint(URI.create(clobUrl))
@@ -238,7 +239,7 @@ public final class FullOnboardAndTradeExample {
              AuthenticatedClobClient client = base.authenticate(
                      eoa, SignatureType.POLY_1271, wallet, creds)) {
             LimitOrderArgsV2 order = LimitOrderArgsV2.builder()
-                    .tokenId(new BigInteger(tokenIdStr))
+                    .tokenId(parseTokenId(tokenIdStr))
                     .side(TEST_SIDE)
                     .price(TEST_PRICE)
                     .size(TEST_SIZE)
@@ -280,5 +281,14 @@ public final class FullOnboardAndTradeExample {
     /** TS 端 {@code pad(eoa, {size: 32})} 的等价实现：左补 12 字节零，得到 32B 工厂派生 id。 */
     private static String leftPadEoaTo32(Address eoa) {
         return "0x" + "0".repeat(24) + eoa.toLowerHex().substring(2);
+    }
+
+    /** 兼容十进制（标准 Polymarket token id）与 0x 前缀十六进制两种写法。 */
+    private static BigInteger parseTokenId(String s) {
+        String t = s.trim();
+        if (t.startsWith("0x") || t.startsWith("0X")) {
+            return new BigInteger(t.substring(2), 16);
+        }
+        return new BigInteger(t);
     }
 }
