@@ -13,6 +13,14 @@ class DepositWalletConfigTest {
         assertThat(cfg.factory()).isEqualTo(PolymarketContracts.FACTORY);
         assertThat(cfg.implementation()).isEqualTo(PolymarketContracts.IMPLEMENTATION);
         assertThat(cfg.usdcE()).isEqualTo(PolymarketContracts.USDC_E);
+        assertThat(cfg.usdcNative()).isEqualTo(PolymarketContracts.USDC_NATIVE);
+        assertThat(cfg.ctf()).isEqualTo(PolymarketContracts.CTF);
+        assertThat(cfg.exchangeV2()).isEqualTo(PolymarketContracts.EXCHANGE_V2);
+        assertThat(cfg.negRiskExchangeV2()).isEqualTo(PolymarketContracts.NEG_RISK_EXCHANGE_V2);
+        assertThat(cfg.negRiskAdapter()).isEqualTo(PolymarketContracts.NEG_RISK_ADAPTER);
+        assertThat(cfg.pUsdQuoter()).isEqualTo(PolymarketContracts.PUSD_QUOTER);
+        assertThat(cfg.newSpenderA()).isEqualTo(PolymarketContracts.NEW_SPENDER_A);
+        assertThat(cfg.newSpenderB()).isEqualTo(PolymarketContracts.NEW_SPENDER_B);
         assertThat(cfg.parlay()).isEqualTo(PolymarketContracts.PARLAY);
     }
 

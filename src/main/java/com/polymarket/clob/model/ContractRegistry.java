@@ -1,8 +1,9 @@
 package com.polymarket.clob.model;
 
-import com.polymarket.clob.chain.DepositWalletConfig;
 import java.util.Map;
 import java.util.Optional;
+
+import com.polymarket.clob.chain.DepositWalletConfig;
 
 /**
  * 合约地址注册表。最早对齐 Rust {@code rs-clob-client v0.4.4}（V1 only），
@@ -123,6 +124,6 @@ public final class ContractRegistry {
      * 返回指定链的 Deposit Wallet 配置。仅 Polygon 137 有部署；其它链一律返回空。
      */
     public static Optional<DepositWalletConfig> depositWalletConfig(long chainId) {
-        return chainId == 137 ? Optional.of(DepositWalletConfig.polygon()) : Optional.empty();
+        return chainId == ChainId.POLYGON ? Optional.of(DepositWalletConfig.POLYGON) : Optional.empty();
     }
 }

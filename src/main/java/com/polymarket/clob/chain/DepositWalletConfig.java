@@ -20,19 +20,17 @@ public record DepositWalletConfig(
         Address newSpenderB,
         Address parlay
 ) {
-    public static DepositWalletConfig polygon() {
-        return new DepositWalletConfig(
-                PolymarketContracts.FACTORY,
-                PolymarketContracts.IMPLEMENTATION,
-                PolymarketContracts.USDC_E,
-                PolymarketContracts.USDC_NATIVE,
-                PolymarketContracts.CTF,
-                PolymarketContracts.EXCHANGE_V2,
-                PolymarketContracts.NEG_RISK_EXCHANGE_V2,
-                PolymarketContracts.NEG_RISK_ADAPTER,
-                PolymarketContracts.PUSD_QUOTER,
-                PolymarketContracts.NEW_SPENDER_A,
-                PolymarketContracts.NEW_SPENDER_B,
-                PolymarketContracts.PARLAY);
-    }
+    public static final DepositWalletConfig POLYGON = new DepositWalletConfig(
+            PolymarketContracts.FACTORY,
+            PolymarketContracts.IMPLEMENTATION,
+            PolymarketContracts.USDC_E,
+            PolymarketContracts.USDC_NATIVE,
+            PolymarketContracts.CTF,
+            PolymarketContracts.EXCHANGE_V2,
+            PolymarketContracts.NEG_RISK_EXCHANGE_V2,
+            PolymarketContracts.NEG_RISK_ADAPTER,
+            PolymarketContracts.PUSD_QUOTER,
+            PolymarketContracts.NEW_SPENDER_A,
+            PolymarketContracts.NEW_SPENDER_B,
+            PolymarketContracts.PARLAY);
 }
