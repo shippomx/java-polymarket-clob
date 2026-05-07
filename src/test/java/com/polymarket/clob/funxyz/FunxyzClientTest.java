@@ -197,4 +197,29 @@ class FunxyzClientTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("recipient");
     }
+
+    @Test
+    void transportErrorWrapsAsFunxyzExceptionWithStatusMinusOne() throws Exception {
+        // 先抓一个被使用过的端口号,然后停止 server,使下次连接被拒
+        int port = server.port();
+        server.stop();
+
+        FunxyzClient brokenClient = new FunxyzClient(FunxyzConfig.builder()
+                .baseUrl(URI.create("http://localhost:" + port))
+                .apiKey("k")
+                .build());
+
+        assertThatThrownBy(() -> brokenClient.getDepositAddresses(EOA, RECIPIENT).get())
+                .hasCauseInstanceOf(FunxyzException.class)
+                .satisfies(t -> {
+                    FunxyzException fe = (FunxyzException) t.getCause();
+                    assertThat(fe.isTransport()).isTrue();
+                    assertThat(fe.httpStatus()).isEqualTo(-1);
+                    assertThat(fe.getCause()).isNotNull();
+                });
+
+        // 重启,避免 @AfterEach 抛错
+        server = new WireMockServer(0);
+        server.start();
+    }
 }
