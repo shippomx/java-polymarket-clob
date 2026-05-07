@@ -138,4 +138,22 @@ class FunxyzClientTest {
                 .satisfies(t -> assertThat(((FunxyzException) t.getCause()).httpStatus())
                         .isEqualTo(500));
     }
+
+    @Test
+    void malformedJsonThrowsWithCause() {
+        server.stubFor(post(urlEqualTo("/v1/eoa"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("content-type", "application/json")
+                        .withBody("{not valid json")));
+
+        assertThatThrownBy(() -> client.getDepositAddresses(EOA, RECIPIENT).get())
+                .hasCauseInstanceOf(FunxyzException.class)
+                .satisfies(t -> {
+                    FunxyzException fe = (FunxyzException) t.getCause();
+                    assertThat(fe.httpStatus()).isEqualTo(200);
+                    assertThat(fe.getCause()).isNotNull();  // Jackson 异常
+                    assertThat(fe.getMessage()).contains("malformed JSON");
+                });
+    }
 }
