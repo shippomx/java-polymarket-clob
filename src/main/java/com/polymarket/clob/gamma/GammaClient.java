@@ -58,11 +58,10 @@ public final class GammaClient {
             return eoa.signHash(digest).thenCompose(sig65 -> {
                 String sigHex = "0x" + HexFormat.of().formatHex(sig65);
                 String payloadJson = buildLoginPayload(eoa.address(), chainId, nonce, issued, expiry);
-                // Token format: base64(payload):::0x{sig} — the ::: delimiter and sig are not encoded,
-                // so the Authorization header contains a visible ":::" separator for server parsing.
-                String payloadB64 = Base64.getEncoder().encodeToString(
-                        payloadJson.getBytes(StandardCharsets.UTF_8));
-                String authToken = payloadB64 + ":::" + sigHex;
+                // Token format matches TS: Buffer.from(`${payload}:::${signature}`).toString("base64")
+                // The entire "payload:::0xSIG" string is base64-encoded; no plaintext ::: in the header.
+                String authToken = Base64.getEncoder().encodeToString(
+                        (payloadJson + ":::" + sigHex).getBytes(StandardCharsets.UTF_8));
 
                 Map<String, String> headers = new LinkedHashMap<>();
                 headers.put("Authorization", "Bearer " + authToken);

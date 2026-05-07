@@ -390,7 +390,7 @@ public final class EndToEndOnboardingExample {
         // ---------- 必填 ----------
         // 仅作 demo：把私钥/token 写在源码里，IDE 一键就能跑。生产请改成 env / vault。
         String privateKey = "0x246c06019672b34b8b1cff15c71060de5d0e8d5d2ffba9d5e5ce8c0647ee3b68";
-        String tokenIdStr = "25147717844294736073173530868461301781498654724218268953911135926539197918202";
+        String tokenIdStr = "8501497159083948713316135768103773293754490207922884688769443031624417212426";
         // 这把私钥派生的 EOA：0x0Ba73Fe06B2c537eEEe21690362cF5222d9E5D22
         // Polygon (137) 上对应的 Safe (funder)：0x82f55b4bD815FeAEc6E92469c7788Da4E9685D0A
 

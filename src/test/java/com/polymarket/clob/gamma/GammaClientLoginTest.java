@@ -44,7 +44,7 @@ class GammaClientLoginTest {
                         .withHeader("Set-Cookie", "polymarket_anon=anon-val; Path=/")));
 
         server.stubFor(get(urlEqualTo("/login"))
-                .withHeader("Authorization", matching("Bearer .+:::0x[0-9a-f]+"))
+                .withHeader("Authorization", matching("Bearer [A-Za-z0-9+/=]+"))
                 .withHeader("Cookie", matching(".*polymarket_anon=anon-val.*"))
                 .willReturn(okJson("{\"ok\":true}")
                         .withHeader("Set-Cookie", "polymarket_auth=auth-val; Path=/")));
