@@ -1,5 +1,6 @@
 package com.polymarket.clob.gamma;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.polymarket.clob.auth.Signer;
 import com.polymarket.clob.http.JsonCodec;
@@ -88,21 +89,59 @@ public final class GammaClient {
         });
     }
 
-    // ---- 占位：profile 相关方法在 Task 8 实现 ----
-
     public CompletableFuture<Boolean> profileExists(GammaSession s, Address eoa) {
-        return CompletableFuture.failedFuture(
-                new UnsupportedOperationException("Implemented in Task 8"));
+        URI uri = baseUrl.resolve("/users?address=" + eoa.toHex());
+        Map<String, String> headers = Map.of("Cookie", s.cookieHeader());
+        return getJson(uri, headers).thenApply(resp -> {
+            if (resp.status() == 404) return false;
+            if (resp.status() < 200 || resp.status() >= 300) {
+                throw new GammaAuthException("/users status=" + resp.status() + " body=" + resp.body());
+            }
+            try {
+                JsonNode root = mapper.readTree(resp.body());
+                if (root.isArray()) return root.size() > 0;
+                if (root.isObject()) return root.has("id") || root.has("proxyWallet") || root.has("users");
+                return false;
+            } catch (Exception e) {
+                throw new GammaAuthException("/users parse failure", e);
+            }
+        });
     }
 
     public CompletableFuture<Void> createProfile(GammaSession s, Address eoa, Address proxyWallet) {
-        return CompletableFuture.failedFuture(
-                new UnsupportedOperationException("Implemented in Task 8"));
+        long ts = Instant.now().toEpochMilli();
+        String name = proxyWallet.toHex() + "-" + ts;
+        String body = "{"
+                + "\"displayUsernamePublic\":true,"
+                + "\"emailOptIn\":false,"
+                + "\"walletActivated\":false,"
+                + "\"name\":\"" + name + "\","
+                + "\"pseudonym\":\"" + proxyWallet.toHex() + "\","
+                + "\"proxyWallet\":\"" + proxyWallet.toHex() + "\","
+                + "\"users\":[{"
+                + "\"address\":\"" + eoa.toHex() + "\","
+                + "\"isExternalAuth\":true,"
+                + "\"proxyWallet\":\"" + proxyWallet.toHex() + "\","
+                + "\"username\":\"" + name + "\","
+                + "\"provider\":\"metamask\","
+                + "\"preferences\":[],"
+                + "\"walletPreferences\":[{\"advancedMode\":false,\"customGasPrice\":\"30\",\"gasPreference\":\"fast\"}]"
+                + "}]"
+                + "}";
+        URI uri = baseUrl.resolve("/profiles");
+        Map<String, String> headers = Map.of("Cookie", s.cookieHeader());
+        return postJson(uri, body, headers).thenApply(resp -> {
+            if (resp.status() < 200 || resp.status() >= 300) {
+                throw new GammaAuthException("/profiles status=" + resp.status() + " body=" + resp.body());
+            }
+            return (Void) null;
+        });
     }
 
     public CompletableFuture<Void> ensureProfile(GammaSession s, Address eoa, Address proxyWallet) {
-        return CompletableFuture.failedFuture(
-                new UnsupportedOperationException("Implemented in Task 8"));
+        return profileExists(s, eoa).thenCompose(exists ->
+                exists ? CompletableFuture.completedFuture(null)
+                       : createProfile(s, eoa, proxyWallet));
     }
 
     // ---- 内部工具 ----
