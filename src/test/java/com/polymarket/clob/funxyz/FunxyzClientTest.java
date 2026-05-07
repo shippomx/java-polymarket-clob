@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.net.URI;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -109,5 +110,32 @@ class FunxyzClientTest {
                     assertThat(fe.isBlocked()).isTrue();
                     assertThat(fe.httpStatus()).isEqualTo(200);
                 });
+    }
+
+    @Test
+    void http401ThrowsWithStatusCode() {
+        server.stubFor(post(urlEqualTo("/v1/eoa"))
+                .willReturn(aResponse().withStatus(401).withBody("{\"error\":\"invalid api key\"}")));
+
+        assertThatThrownBy(() -> client.getDepositAddresses(EOA, RECIPIENT).get())
+                .hasCauseInstanceOf(FunxyzException.class)
+                .satisfies(t -> {
+                    FunxyzException fe = (FunxyzException) t.getCause();
+                    assertThat(fe.httpStatus()).isEqualTo(401);
+                    assertThat(fe.isTransport()).isFalse();
+                    assertThat(fe.isBlocked()).isFalse();
+                    assertThat(fe.getMessage()).contains("401").contains("invalid api key");
+                });
+    }
+
+    @Test
+    void http500ThrowsWithStatusCode() {
+        server.stubFor(post(urlEqualTo("/v1/eoa"))
+                .willReturn(aResponse().withStatus(500).withBody("internal server error")));
+
+        assertThatThrownBy(() -> client.getDepositAddresses(EOA, RECIPIENT).get())
+                .hasCauseInstanceOf(FunxyzException.class)
+                .satisfies(t -> assertThat(((FunxyzException) t.getCause()).httpStatus())
+                        .isEqualTo(500));
     }
 }
