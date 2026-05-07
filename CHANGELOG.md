@@ -9,6 +9,11 @@
 ### Added
 
 - `example.FullOnboardAndTradeExample`：原语级 7 步 onboard + trade 演示，对照 TS `clob-client-v2/examples/account/fullOnboardAndTrade.ts`。直接组合 `GammaClient` / `DepositWalletReads` / `ApprovalPlanner` / `BatchEip712` / `DepositWalletRelayer` / `AuthApi` / `AuthenticatedClobClient`，每步显式打印 `txnID` / `state` / `hash` / 响应 JSON，作为生产排障样板。
+- `funxyz/` 包：fun.xyz 法币入金地址客户端
+  - `FunxyzClient.getDepositAddresses(eoa, recipient)` 封装 `POST api.fun.xyz/v1/eoa`
+  - `DepositAddresses` 返回四链固定映射地址（EVM/Solana/Tron/BTC）
+  - `FunxyzConfig` 默认带 Polymarket 前端公开 key，可覆盖
+  - `FunxyzAddressLookupExample` 端到端 demo
 
 ## 2.0.0 — 2026-05-07
 
