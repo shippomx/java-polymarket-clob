@@ -360,7 +360,7 @@ public final class FullOnboardAndTradeExample {
 
     /** TS 端 {@code pad(eoa, {size: 32})} 的等价实现：左补 12 字节零，得到 32B 工厂派生 id。 */
     private static String leftPadEoaTo32(Address eoa) {
-        return "0x" + "0".repeat(24) + eoa.toHex().substring(2);
+        return "0x" + "0".repeat(24) + eoa.toLowerHex().substring(2);
     }
 }
 ```
