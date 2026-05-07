@@ -42,6 +42,11 @@ public final class LocalSigner implements Signer {
         }
     }
 
+    /** Alias for {@link #fromPrivateKey(String)} — accepts a raw hex private key string. */
+    public static LocalSigner fromPrivateKeyHex(String hex) {
+        return fromPrivateKey(hex);
+    }
+
     public static LocalSigner fromPrivateKey(BigInteger pk) {
         Objects.requireNonNull(pk, "pk");
         try {
