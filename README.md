@@ -91,7 +91,7 @@ System.out.println("Wallet:  " + result.wallet().toHex());
 System.out.println("API key: " + result.creds().apiKey());
 ```
 
-完整端到端 + 下单见 `src/main/java/com/polymarket/clob/example/DepositWalletOnboardAndTradeExample.java`。
+完整端到端 + 下单见 `src/main/java/com/polymarket/clob/example/FullOnboardAndTradeExample.java`（原语级 7 步，排障/学习首选）或 `OnboarderExample.java`（一键 `Onboarder.run()`）。
 
 ---
 
@@ -444,7 +444,8 @@ v2 仅支持 **Polygon 主网**（chainId = 137）。Amoy 测试网支持已在�
 export PK=0x<你的 EOA 私钥>
 export RPC_URL=https://polygon-rpc.com         # 可选
 export TOKEN_ID=<某 outcome token id>          # 可选；不传只跑 onboarding
-mvn -q exec:java -Dexec.mainClass=com.polymarket.clob.example.DepositWalletOnboardAndTradeExample
+mvn -q exec:java -Dexec.mainClass=com.polymarket.clob.example.OnboarderExample
+mvn -q exec:java -Dexec.mainClass=com.polymarket.clob.example.FullOnboardAndTradeExample
 ```
 
 下单前需确保 deposit wallet 持有 ≥ 1 USDC.e。
@@ -460,7 +461,7 @@ mvn -q exec:java -Dexec.mainClass=com.polymarket.clob.example.DepositWalletOnboa
 | `WalletDerivation.deriveSafeWallet(...)` | `new DepositWalletDerivation(reads).predictWalletAddress(...)` |
 | `GaslessRelayer` | `DepositWalletRelayer` |
 | `SignatureType.POLY_PROXY / POLY_GNOSIS_SAFE` | `SignatureType.POLY_1271`（强制） |
-| `EndToEndOnboardingExample` | `DepositWalletOnboardAndTradeExample` |
+| `EndToEndOnboardingExample` | `OnboarderExample`（高层）/ `FullOnboardAndTradeExample`（原语级） |
 
 ---
 
@@ -476,7 +477,8 @@ mvn -q exec:java -Dexec.mainClass=com.polymarket.clob.example.DepositWalletOnboa
 | `WebSocketOrderBookExample` | market / user 双模式 WS | `MODE` `ASSET_IDS` `MARKETS` `DURATION_SECONDS` |
 | `HeartbeatExample` | 单次 / 调度模式心跳 | `MODE=once|scheduler` |
 | `BuilderExample` | promote 到 Builder 客户端 | `BUILDER_API_KEY/SECRET/PASSPHRASE` 或 `BUILDER_REMOTE_HOST` |
-| `DepositWalletOnboardAndTradeExample` | 完整 Deposit Wallet 冷启动流水线（v2） | `PK` `RPC_URL` `TOKEN_ID` |
+| `OnboarderExample` | 一键 Onboarder 流水线（v2） | `PK` `RPC_URL` `TOKEN_ID` |
+| `FullOnboardAndTradeExample` | 原语级 7 步 onboard + trade（排障样板） | `PK` `RPC_URL` `TOKEN_ID` `CLOB_API_URL` `CLOB_API_KEY` `CLOB_SECRET` `CLOB_PASS_PHRASE` |
 
 运行：
 
