@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Breaking changes
+
+- `example.DepositWalletOnboardAndTradeExample` 重命名为 `example.OnboarderExample`。调用方 `mvn exec:java -Dexec.mainClass=...DepositWalletOnboardAndTradeExample` 的脚本需改为 `...OnboarderExample`。
+
+### Added
+
+- `example.FullOnboardAndTradeExample`：原语级 7 步 onboard + trade 演示，对照 TS `clob-client-v2/examples/account/fullOnboardAndTrade.ts`。直接组合 `GammaClient` / `DepositWalletReads` / `ApprovalPlanner` / `BatchEip712` / `DepositWalletRelayer` / `AuthApi` / `AuthenticatedClobClient`，每步显式打印 `txnID` / `state` / `hash` / 响应 JSON，作为生产排障样板。
+
 ## 2.0.0 — 2026-05-07
 
 ### Breaking changes
