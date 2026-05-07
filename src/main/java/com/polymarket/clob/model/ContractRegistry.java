@@ -1,5 +1,6 @@
 package com.polymarket.clob.model;
 
+import com.polymarket.clob.chain.DepositWalletConfig;
 import java.util.Map;
 import java.util.Optional;
 
@@ -116,5 +117,12 @@ public final class ContractRegistry {
     public static Optional<Address> exchangeV2(long chainId, boolean negRisk) {
         return contractConfig(chainId, negRisk)
                 .flatMap(cfg -> negRisk ? cfg.negRiskExchangeV2() : cfg.exchangeV2());
+    }
+
+    /**
+     * 返回指定链的 Deposit Wallet 配置。仅 Polygon 137 有部署；其它链一律返回空。
+     */
+    public static Optional<DepositWalletConfig> depositWalletConfig(long chainId) {
+        return chainId == 137 ? Optional.of(DepositWalletConfig.polygon()) : Optional.empty();
     }
 }
