@@ -182,4 +182,19 @@ class FunxyzClientTest {
                 .satisfies(t -> assertThat(((FunxyzException) t.getCause()).getMessage())
                         .contains("missing or malformed depositAddr"));
     }
+
+    @Test
+    void nullEoaThrowsSynchronously() {
+        // 注意：是同步 throw，不是 future 完成时抛
+        assertThatThrownBy(() -> client.getDepositAddresses(null, RECIPIENT))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("eoa");
+    }
+
+    @Test
+    void nullRecipientThrowsSynchronously() {
+        assertThatThrownBy(() -> client.getDepositAddresses(EOA, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("recipient");
+    }
 }
