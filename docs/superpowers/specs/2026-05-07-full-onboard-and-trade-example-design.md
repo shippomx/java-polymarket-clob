@@ -38,9 +38,7 @@ FullOnboardAndTradeExample
 ├── 顶层常量                            RELAYER_HOST / GAMMA_HOST / CHAIN_ID / 测试单参数
 ├── step(int n, String label)          进度打印（[n/7] label）
 ├── printSection(String title)         分隔线（═══...═══）
-├── parseTickSize(String) → TickSize   "0.01" → 枚举
-└── readUsdcBalance(EvmRpcClient,      链上 USDC.e 余额读取（example 内联，
-                    Address) → BigInteger    DepositWalletReads 没有这个方法）
+└── parseTickSize(String) → TickSize   "0.01" → 枚举
 ```
 
 **直接依赖的 SDK 组件**（不经过 `Onboarder`）：
@@ -83,7 +81,7 @@ EOA Signer (LocalSigner)
 | 4/7 | `Wallet already deployed — skip` 或 `Deploy wallet via WALLET-CREATE` | `relayer.submitWalletCreate(...)` + `relayer.waitForTx(...)` | `txnID=…`、`state=…`、`hash=…` |
 | 5/7 | `Check allowances and approve missing` | `planner.planMissingApprovals` → 缺则 `reads.walletNonce` + `BatchEip712.hashBatch` + `eoa.signHash` + `relayer.submitBatch` | `Submitting N approval(s) via WALLET batch...` 或 `All allowances already set ✅` |
 | 6/7 | `Get CLOB L2 API credentials` | env 三件套都给 → 直接用；否则 `auth.createOrDeriveApiKey(...)` | `Using existing creds from .env` 或 `Derived new creds. Save to .env to skip ...` |
-| 7/7 | `Place test order (token=...)` | `readUsdcBalance(...)` 预检 → `AuthenticatedClobClient.postOrder(...)` | `Deposit wallet USDC.e balance: …`、可选 `⚠️  Wallet has < 1 USDC`、`Response: {json}` |
+| 7/7 | `Place test order (token=...)` | `reads.erc20BalanceOf(USDC_E, wallet)` 预检 → `AuthenticatedClobClient.createAndPostLimitOrderV2(...)` | `Deposit wallet USDC.e balance: …`、可选 `⚠️  Wallet has < 1 USDC`、`Response: {json}` |
 
 `TOKEN_ID` 缺省时跳过 step 7：打印 `[7/7] (skipped — TOKEN_ID not set)` 然后 `✅ Onboarding complete`。**保留 `/7` 编号不变**——流程是 7 步，只是最后一步被跳过。
 
@@ -213,7 +211,7 @@ mvn -q exec:java \
 - `main` 签名 `public static void main(String[] args) throws Exception`，**外层 try/catch `Throwable`**：捕获后打印 `\n❌ Test failed: <ex.getMessage()>` + 完整 stacktrace，`System.exit(1)` 退出（对齐 TS `process.exit(1)`）。
 - 每步异步操作用 `.get()` 同步阻塞（参照现有 example）。
 - Step 5 是唯一嵌套较深的（plan → 若非空则 nonce → digest → sign → submit → wait），按"先 await 再决定下一步"展开成线性 4 行，**不**用 `thenCompose` 链——和 `Onboarder.java` 内部不一样，但 example 的目的就是"线性可读"。
-- **`reads.usdcBalance` 不存在**：直接用 `Web3jEvmRpcClient.ethCall(USDC_E, "balanceOf(wallet)")` + ABI 解码。在 example 内联 ≈ 7 行的 `readUsdcBalance` 辅助函数，**不**为这个能力新增主代码 API（YAGNI——只 example 用）。
+- **USDC.e 余额读取**：直接调用 `DepositWalletReads.erc20BalanceOf(PolymarketContracts.USDC_E, wallet)`——这是已存在的公开方法，无需新增主代码 API 或 example 内联辅助。
 
 ## 配套改动
 
