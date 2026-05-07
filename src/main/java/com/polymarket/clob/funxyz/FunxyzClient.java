@@ -43,10 +43,12 @@ public final class FunxyzClient {
 
     private final FunxyzConfig cfg;
     private final ObjectMapper mapper;
+    private final String resolvedApiKey;
 
     public FunxyzClient(FunxyzConfig cfg) {
         this.cfg = Objects.requireNonNull(cfg, "cfg");
         this.mapper = JsonCodec.objectMapper();
+        this.resolvedApiKey = resolveApiKey(cfg);
     }
 
     /**
@@ -68,7 +70,7 @@ public final class FunxyzClient {
                 .header("content-type", "application/json")
                 .header("origin", ORIGIN)
                 .header("referer", REFERER)
-                .header("x-api-key", cfg.apiKey())
+                .header("x-api-key", resolvedApiKey)
                 .timeout(cfg.requestTimeout())
                 .POST(HttpRequest.BodyPublishers.ofString(body))
                 .build();
@@ -144,6 +146,23 @@ public final class FunxyzClient {
                 root.path("tronAddr").asText(""),
                 root.path("btcAddrSegwit").asText("")
         );
+    }
+
+    /**
+     * 构造时一次性解析 x-api-key:
+     *   - 调用方显式 {@code cfg.apiKey() != null} → 直接使用,不发 CDN 请求
+     *   - 否则 → 从 {@code cfg.flagsConfigUrl()} 拉取并解析
+     *           {@code flags.token_transfer_source_chains_and_assets.overrides[0].if_any[0].values[0]}
+     *   - CDN 任何失败 → warn 日志 + 回退 {@link FunxyzConfig#DEFAULT_PUBLIC_API_KEY}
+     *
+     * <p>本方法永不抛异常,保证 {@link FunxyzClient} 构造永远成功(除 {@code cfg == null})。</p>
+     */
+    private String resolveApiKey(FunxyzConfig cfg) {
+        if (cfg.apiKey() != null) {
+            return cfg.apiKey();
+        }
+        // CDN 路径占位:Task 3 实现真实拉取逻辑。
+        return FunxyzConfig.DEFAULT_PUBLIC_API_KEY;
     }
 
     private static String truncate(String s, int max) {
