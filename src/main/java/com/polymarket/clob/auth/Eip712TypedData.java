@@ -34,15 +34,15 @@ public final class Eip712TypedData {
 
     public static String typedDataJsonClobAuth(ClobAuth auth, long chainId) {
         Objects.requireNonNull(auth, "auth");
-        com.fasterxml.jackson.databind.ObjectMapper m = JsonCodec.objectMapper();
-        com.fasterxml.jackson.databind.node.ObjectNode root = m.createObjectNode();
+        ObjectMapper m = JsonCodec.objectMapper();
+        ObjectNode root = m.createObjectNode();
 
-        com.fasterxml.jackson.databind.node.ObjectNode types = root.putObject("types");
-        com.fasterxml.jackson.databind.node.ArrayNode domainType = types.putArray("EIP712Domain");
+        ObjectNode types = root.putObject("types");
+        ArrayNode domainType = types.putArray("EIP712Domain");
         addField(m, domainType, "name", "string");
         addField(m, domainType, "version", "string");
         addField(m, domainType, "chainId", "uint256");
-        com.fasterxml.jackson.databind.node.ArrayNode clobAuthType = types.putArray("ClobAuth");
+        ArrayNode clobAuthType = types.putArray("ClobAuth");
         addField(m, clobAuthType, "address", "address");
         addField(m, clobAuthType, "timestamp", "string");
         addField(m, clobAuthType, "nonce", "uint256");
@@ -50,12 +50,12 @@ public final class Eip712TypedData {
 
         root.put("primaryType", "ClobAuth");
 
-        com.fasterxml.jackson.databind.node.ObjectNode domain = root.putObject("domain");
+        ObjectNode domain = root.putObject("domain");
         domain.put("name", ClobAuth.DOMAIN_NAME);
         domain.put("version", ClobAuth.DOMAIN_VERSION);
         domain.put("chainId", chainId);
 
-        com.fasterxml.jackson.databind.node.ObjectNode message = root.putObject("message");
+        ObjectNode message = root.putObject("message");
         message.put("address", auth.address().toHex());
         message.put("timestamp", auth.timestamp());
         message.put("nonce", auth.nonce());

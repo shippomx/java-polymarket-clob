@@ -57,18 +57,15 @@ class Eip712TypedDataTest {
                 .isEqualTo("This message attests that I control the given wallet");
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     void typedDataJsonClobAuthRoundTripsToHashClobAuth() throws Exception {
-        com.polymarket.clob.auth.ClobAuth a = com.polymarket.clob.auth.ClobAuth.of(
-                com.polymarket.clob.model.Address.fromHex("0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"),
-                10_000_000L,
-                java.math.BigInteger.valueOf(23));
-        long chainId = 80002L;
-        byte[] expected = com.polymarket.clob.auth.Eip712TypedData.hashClobAuth(a, chainId);
+        ClobAuth a = ClobAuth.of(EOA, 10_000_000L, BigInteger.valueOf(23));
+        long chainId = ChainId.AMOY;
+        byte[] expected = Eip712TypedData.hashClobAuth(a, chainId);
 
-        String json = com.polymarket.clob.auth.Eip712TypedData.typedDataJsonClobAuth(a, chainId);
+        String json = Eip712TypedData.typedDataJsonClobAuth(a, chainId);
         byte[] actual = new org.web3j.crypto.StructuredDataEncoder(json).hashStructuredData();
 
-        org.assertj.core.api.Assertions.assertThat(actual).containsExactly(expected);
+        assertThat(actual).containsExactly(expected);
     }
 }
