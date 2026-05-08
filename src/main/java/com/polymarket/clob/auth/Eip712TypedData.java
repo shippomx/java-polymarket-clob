@@ -32,16 +32,17 @@ public final class Eip712TypedData {
 
     private Eip712TypedData() {}
 
-    public static byte[] hashClobAuth(ClobAuth auth, long chainId) {
-        ObjectMapper m = JsonCodec.objectMapper();
-        ObjectNode root = m.createObjectNode();
+    public static String typedDataJsonClobAuth(ClobAuth auth, long chainId) {
+        Objects.requireNonNull(auth, "auth");
+        com.fasterxml.jackson.databind.ObjectMapper m = JsonCodec.objectMapper();
+        com.fasterxml.jackson.databind.node.ObjectNode root = m.createObjectNode();
 
-        ObjectNode types = root.putObject("types");
-        ArrayNode domainType = types.putArray("EIP712Domain");
+        com.fasterxml.jackson.databind.node.ObjectNode types = root.putObject("types");
+        com.fasterxml.jackson.databind.node.ArrayNode domainType = types.putArray("EIP712Domain");
         addField(m, domainType, "name", "string");
         addField(m, domainType, "version", "string");
         addField(m, domainType, "chainId", "uint256");
-        ArrayNode clobAuthType = types.putArray("ClobAuth");
+        com.fasterxml.jackson.databind.node.ArrayNode clobAuthType = types.putArray("ClobAuth");
         addField(m, clobAuthType, "address", "address");
         addField(m, clobAuthType, "timestamp", "string");
         addField(m, clobAuthType, "nonce", "uint256");
@@ -49,18 +50,22 @@ public final class Eip712TypedData {
 
         root.put("primaryType", "ClobAuth");
 
-        ObjectNode domain = root.putObject("domain");
+        com.fasterxml.jackson.databind.node.ObjectNode domain = root.putObject("domain");
         domain.put("name", ClobAuth.DOMAIN_NAME);
         domain.put("version", ClobAuth.DOMAIN_VERSION);
         domain.put("chainId", chainId);
 
-        ObjectNode message = root.putObject("message");
+        com.fasterxml.jackson.databind.node.ObjectNode message = root.putObject("message");
         message.put("address", auth.address().toHex());
         message.put("timestamp", auth.timestamp());
         message.put("nonce", auth.nonce());
         message.put("message", auth.message());
 
-        String json = JsonCodec.writeValue(m, root);
+        return JsonCodec.writeValue(m, root);
+    }
+
+    public static byte[] hashClobAuth(ClobAuth auth, long chainId) {
+        String json = typedDataJsonClobAuth(auth, chainId);
         try {
             return new StructuredDataEncoder(json).hashStructuredData();
         } catch (IOException | RuntimeException e) {
