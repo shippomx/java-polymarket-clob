@@ -1,7 +1,9 @@
 package com.polymarket.clob.gamma;
 
 import com.polymarket.clob.model.Address;
+import org.web3j.crypto.Sign;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 
@@ -32,5 +34,9 @@ public final class SiweMessage {
                 + "Nonce: " + nonce + "\n"
                 + "Issued At: " + DateTimeFormatter.ISO_INSTANT.format(issuedAt) + "\n"
                 + "Expiration Time: " + DateTimeFormatter.ISO_INSTANT.format(expirationTime);
+    }
+
+    public static byte[] personalSignDigest(String message) {
+        return Sign.getEthereumMessageHash(message.getBytes(StandardCharsets.UTF_8));
     }
 }

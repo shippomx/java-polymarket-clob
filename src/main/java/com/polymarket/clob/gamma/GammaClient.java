@@ -5,8 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.polymarket.clob.auth.Signer;
 import com.polymarket.clob.http.JsonCodec;
 import com.polymarket.clob.model.Address;
-import org.web3j.crypto.Sign;
-
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -176,7 +174,7 @@ public final class GammaClient {
      * Prepends "\x19Ethereum Signed Message:\n{len}" and Keccak-256 hashes the result.
      */
     static byte[] personalSignDigest(String message) {
-        return Sign.getEthereumMessageHash(message.getBytes(StandardCharsets.UTF_8));
+        return SiweMessage.personalSignDigest(message);
     }
 
     static String buildLoginPayload(Address eoa, long chainId, String nonce,
