@@ -1,10 +1,6 @@
 package com.polymarket.clob.auth;
 
-import com.polymarket.clob.model.Address;
-
 import java.math.BigInteger;
-import java.util.HexFormat;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -42,18 +38,8 @@ public final class L1HeaderBuilder {
             long timestamp,
             BigInteger nonce) {
         Objects.requireNonNull(signer, "signer");
-        BigInteger n = nonce == null ? BigInteger.ZERO : nonce;
-        Address address = signer.address();
-        ClobAuth auth = ClobAuth.of(address, timestamp, n);
-        byte[] digest = Eip712TypedData.hashClobAuth(auth, chainId);
-        return signer.signHash(digest).thenApply(sig -> {
-            String signatureHex = "0x" + HexFormat.of().formatHex(sig);
-            Map<String, String> headers = new LinkedHashMap<>();
-            headers.put(POLY_ADDRESS, address.toLowerHex());
-            headers.put(POLY_NONCE, n.toString());
-            headers.put(POLY_SIGNATURE, signatureHex);
-            headers.put(POLY_TIMESTAMP, Long.toString(timestamp));
-            return headers;
-        });
+        UnsignedClobAuth unsigned = UnsignedClobAuth.buildUnsigned(signer.address(), chainId, timestamp, nonce);
+        return signer.signHash(unsigned.signingDigest32())
+                .thenApply(sig -> UnsignedClobAuth.attachSignature(unsigned, sig));
     }
 }
