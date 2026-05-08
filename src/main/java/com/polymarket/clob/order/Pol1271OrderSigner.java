@@ -89,28 +89,9 @@ public final class Pol1271OrderSigner {
     public static CompletableFuture<SignedOrderV2> sign(Signer eoa, OrderV2 order,
                                                          long chainId, boolean negRisk) {
         try {
-            byte[] contents = contentsHash(order);
-            byte[] appSep   = appDomainSeparator(chainId, negRisk);
-            byte[] digest   = innerDigest(order, chainId, contents, appSep);
-            return eoa.signHash(digest).thenApply(innerSig -> {
-                if (innerSig == null || innerSig.length != 65) {
-                    throw new ClobSignatureException("inner signer returned length="
-                            + (innerSig == null ? -1 : innerSig.length));
-                }
-                byte[] orderTypeAscii = PolymarketContracts.ORDER_TYPE_STRING
-                        .getBytes(StandardCharsets.US_ASCII);
-                int len = orderTypeAscii.length;
-
-                ByteBuffer buf = ByteBuffer.allocate(65 + 32 + 32 + len + 2);
-                buf.put(innerSig);
-                buf.put(appSep);
-                buf.put(contents);
-                buf.put(orderTypeAscii);
-                buf.put((byte) ((len >> 8) & 0xff));
-                buf.put((byte) (len & 0xff));
-                String hex = "0x" + HexFormat.of().formatHex(buf.array());
-                return SignedOrderV2.of(order, hex);
-            });
+            UnsignedOrderV2Pol1271 unsigned = UnsignedOrderV2Pol1271.buildUnsigned(order, chainId, negRisk);
+            return eoa.signHash(unsigned.signingDigest32())
+                    .thenApply(innerSig -> UnsignedOrderV2Pol1271.attachSignature(unsigned, innerSig));
         } catch (ClobSignatureException e) {
             return CompletableFuture.failedFuture(e);
         } catch (RuntimeException e) {
