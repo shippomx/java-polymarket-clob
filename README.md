@@ -581,6 +581,24 @@ System.out.println(addrs.solana());     // CobugN8o4CnNVYL9jj7NGRDrdG2hJxAwMiPNZ
 
 ---
 
+### 外部签名（v2.1.0）
+
+`com.polymarket.clob.signing.ExternalSigning` 提供 4 对 `buildUnsigned + attach` 原语，给不持有用户私钥的后端服务用 —— Order V2 POLY_1271、DepositWallet Batch、ClobAuth、SIWE。每个 `Unsigned*` 都带 32 字节 `signingDigest32`，并在适用场景同时给出 EIP-712 `typedDataJson`，可走 `eth_signTypedData_v4` 弹窗。
+
+```java
+import com.polymarket.clob.signing.ExternalSigning;
+import com.polymarket.clob.order.UnsignedOrderV2Pol1271;
+import com.polymarket.clob.order.SignedOrderV2;
+
+UnsignedOrderV2Pol1271 unsigned = ExternalSigning.buildUnsignedOrderV2Pol1271(order, 137L, false);
+byte[] innerSig = remoteSigner.signHash(unsigned.signingDigest32()); // 65 bytes from mobile app
+SignedOrderV2 signed = ExternalSigning.attachOrderV2Pol1271Signature(unsigned, innerSig);
+```
+
+本地签名路径（`OrderBuilder.createOrderV2` / `Pol1271OrderSigner.sign` / `L1HeaderBuilder.build` / `GammaClient.loginWithSiwe`）行为完全不变 —— 内部已下沉到这些原语之上，wire 字节输出严格一致。
+
+---
+
 ## 参考链接
 
 - Polymarket CLOB API: <https://docs.polymarket.com/>

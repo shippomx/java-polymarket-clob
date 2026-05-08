@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.1.0 — 2026-05-08
 
 ### Breaking changes
 
@@ -14,6 +14,17 @@
   - `DepositAddresses` 返回四链固定映射地址（EVM/Solana/Tron/BTC）
   - `FunxyzConfig` 默认带 Polymarket 前端公开 key，可覆盖
   - `FunxyzAddressLookupExample` 端到端 demo
+- 外部签名 API（`com.polymarket.clob.signing.ExternalSigning`）：4 对 `buildUnsignedXxx(...)` + `attachXxxSignature(...)`，覆盖 Order V2 POLY_1271（ERC-7739 嵌套 TypedDataSign）、DepositWallet Batch、ClobAuth（L1 头）和 SIWE（EIP-191）。每个 `Unsigned*` 同时携带 `signingDigest32` 与（适用时）`typedDataJson`，可被 `eth_signTypedData_v4` 在 App 端弹窗显示。后端进程可把 digest 透传给手机端钱包远程签名，私钥永不进 BE。
+
+### Changed
+
+- `Pol1271OrderSigner.sign(...)` 与 `L1HeaderBuilder.build(...)` 现在是新 build/attach 原语之上的薄包装。wire 字节输出与之前完全一致（parity 测试不变）。
+- `Pol1271OrderSigner.appDomainSeparator(...)` 与 `Pol1271OrderSigner.innerDigest(...)` 由 package-private 提升为 `public static`，以支持外部签名路径。
+- `personalSignDigest(String)` 从 `GammaClient`（package-private）移到 `SiweMessage`（public）。`GammaClient.personalSignDigest` 改为转发。
+
+### Notes
+
+- `GammaClient.loginWithSiwe(...)` **未** 重构 — 它持有网络传输与 Bearer auth-token 构造（`base64(payload + ":::" + sig)`），不属于纯签名原语范畴。仅需 SIWE digest 的消费者应直接调 `UnsignedSiwe.buildUnsigned(...)`（或 `ExternalSigning.buildUnsignedSiwe(...)`）。
 
 ## 2.0.0 — 2026-05-07
 
