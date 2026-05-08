@@ -1,9 +1,13 @@
 package com.polymarket.clob.order;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.polymarket.clob.api.model.Side;
 import com.polymarket.clob.auth.Signer;
 import com.polymarket.clob.chain.PolymarketContracts;
 import com.polymarket.clob.exception.ClobSignatureException;
+import com.polymarket.clob.http.JsonCodec;
 import com.polymarket.clob.model.Address;
 import com.polymarket.clob.model.ContractRegistry;
 import org.web3j.crypto.Hash;
@@ -13,6 +17,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.HexFormat;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -64,7 +69,7 @@ public final class Pol1271OrderSigner {
     }
 
     /** Task 16 实现：appDomainSep 缓存。 */
-    static byte[] appDomainSeparator(long chainId, boolean negRisk) {
+    public static byte[] appDomainSeparator(long chainId, boolean negRisk) {
         String key = chainId + "|" + negRisk;
         return APP_DOMAIN_SEP_CACHE.computeIfAbsent(key, k -> {
             Address verifyingContract = ContractRegistry.exchangeV2(chainId, negRisk)
@@ -125,8 +130,8 @@ public final class Pol1271OrderSigner {
      *   name="DepositWallet", version="1", chainId, verifyingContract=order.signer (=wallet),
      *   salt=bytes32(0)。
      */
-    static byte[] innerDigest(OrderV2 order, long chainId,
-                               byte[] contentsHash, byte[] appDomainSep) {
+    public static byte[] innerDigest(OrderV2 order, long chainId,
+                                     byte[] contentsHash, byte[] appDomainSep) {
         byte[] depositNameHash = Hash.sha3(
                 PolymarketContracts.DEPOSIT_WALLET_DOMAIN_NAME.getBytes(StandardCharsets.UTF_8));
         byte[] depositVersionHash = Hash.sha3(
@@ -149,6 +154,85 @@ public final class Pol1271OrderSigner {
         digestBuf.put(appDomainSep);
         digestBuf.put(structHash);
         return Hash.sha3(digestBuf.array());
+    }
+
+    /**
+     * 生成 ERC-7739 TypedDataSign EIP-712 JSON，可通过 web3j {@code StructuredDataEncoder}
+     * round-trip 到与 {@link #innerDigest} 相同的 32 字节摘要。
+     */
+    public static String typedDataJsonOrderV2Pol1271(OrderV2 order, long chainId, boolean negRisk) {
+        Objects.requireNonNull(order, "order");
+        Address verifyingContract = ContractRegistry.exchangeV2(chainId, negRisk).orElseThrow(
+                () -> new ClobSignatureException(
+                        "exchangeV2 not registered for chainId=" + chainId + " negRisk=" + negRisk));
+
+        ObjectMapper m = JsonCodec.objectMapper();
+        ObjectNode root = m.createObjectNode();
+
+        ObjectNode types = root.putObject("types");
+        ArrayNode domainType = types.putArray("EIP712Domain");
+        addTypeField(m, domainType, "name", "string");
+        addTypeField(m, domainType, "version", "string");
+        addTypeField(m, domainType, "chainId", "uint256");
+        addTypeField(m, domainType, "verifyingContract", "address");
+
+        ArrayNode tdsType = types.putArray("TypedDataSign");
+        addTypeField(m, tdsType, "contents", "Order");
+        addTypeField(m, tdsType, "name", "string");
+        addTypeField(m, tdsType, "version", "string");
+        addTypeField(m, tdsType, "chainId", "uint256");
+        addTypeField(m, tdsType, "verifyingContract", "address");
+        addTypeField(m, tdsType, "salt", "bytes32");
+
+        ArrayNode orderType = types.putArray("Order");
+        addTypeField(m, orderType, "salt", "uint256");
+        addTypeField(m, orderType, "maker", "address");
+        addTypeField(m, orderType, "signer", "address");
+        addTypeField(m, orderType, "tokenId", "uint256");
+        addTypeField(m, orderType, "makerAmount", "uint256");
+        addTypeField(m, orderType, "takerAmount", "uint256");
+        addTypeField(m, orderType, "side", "uint8");
+        addTypeField(m, orderType, "signatureType", "uint8");
+        addTypeField(m, orderType, "timestamp", "uint256");
+        addTypeField(m, orderType, "metadata", "bytes32");
+        addTypeField(m, orderType, "builder", "bytes32");
+
+        root.put("primaryType", "TypedDataSign");
+
+        ObjectNode domain = root.putObject("domain");
+        domain.put("name", PolymarketContracts.CTF_EXCHANGE_V2_DOMAIN_NAME);
+        domain.put("version", PolymarketContracts.CTF_EXCHANGE_V2_DOMAIN_VERSION);
+        domain.put("chainId", chainId);
+        domain.put("verifyingContract", verifyingContract.toLowerHex());
+
+        ObjectNode message = root.putObject("message");
+        ObjectNode contents = message.putObject("contents");
+        contents.put("salt", order.getSalt().toString());
+        contents.put("maker", order.getMaker().toLowerHex());
+        contents.put("signer", order.getSigner().toLowerHex());
+        contents.put("tokenId", order.getTokenId().toString());
+        contents.put("makerAmount", order.getMakerAmount().toString());
+        contents.put("takerAmount", order.getTakerAmount().toString());
+        contents.put("side", order.getSide().exchangeCode());
+        contents.put("signatureType", order.getSignatureType().code());
+        contents.put("timestamp", order.getTimestamp().toString());
+        contents.put("metadata", order.getMetadata());
+        contents.put("builder", order.getBuilder());
+
+        message.put("name", PolymarketContracts.DEPOSIT_WALLET_DOMAIN_NAME);
+        message.put("version", PolymarketContracts.DEPOSIT_WALLET_DOMAIN_VERSION);
+        message.put("chainId", chainId);
+        message.put("verifyingContract", order.getSigner().toLowerHex());
+        message.put("salt", "0x" + "00".repeat(32));
+
+        return JsonCodec.writeValue(m, root);
+    }
+
+    private static void addTypeField(ObjectMapper m, ArrayNode arr, String name, String type) {
+        ObjectNode o = m.createObjectNode();
+        o.put("name", name);
+        o.put("type", type);
+        arr.add(o);
     }
 
     // ---- helpers ----
