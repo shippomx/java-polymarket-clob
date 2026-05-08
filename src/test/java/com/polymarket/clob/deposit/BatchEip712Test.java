@@ -62,4 +62,22 @@ class BatchEip712Test {
                 137, WALLET, BigInteger.ZERO, BigInteger.valueOf(100), List.of()))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void typedDataJsonBatchRoundTripsToHashBatch() throws Exception {
+        Address wallet = Address.fromHex("0xada4563A6738215c56D2B59BC1C5a1dB65b1fD78");
+        Address target = Address.fromHex("0x1111111111111111111111111111111111111111");
+        List<Call> calls = List.of(
+                new Call(target, BigInteger.ZERO, new byte[]{0x01, 0x02, 0x03}));
+
+        long chainId = 137L;
+        BigInteger nonce    = BigInteger.valueOf(7);
+        BigInteger deadline = BigInteger.valueOf(2_000_000_000L);
+
+        byte[] expected = BatchEip712.hashBatch(chainId, wallet, nonce, deadline, calls);
+        String json     = BatchEip712.typedDataJsonBatch(chainId, wallet, nonce, deadline, calls);
+        byte[] actual   = new org.web3j.crypto.StructuredDataEncoder(json).hashStructuredData();
+
+        assertThat(actual).containsExactly(expected);
+    }
 }

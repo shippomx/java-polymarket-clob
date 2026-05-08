@@ -1,12 +1,17 @@
 package com.polymarket.clob.deposit;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.polymarket.clob.chain.PolymarketContracts;
+import com.polymarket.clob.http.JsonCodec;
 import com.polymarket.clob.model.Address;
 import org.web3j.crypto.Hash;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.HexFormat;
 import java.util.List;
 
 /**
@@ -118,5 +123,71 @@ public final class BatchEip712 {
             System.arraycopy(raw, 0, out, 32 - raw.length, raw.length);
         }
         return out;
+    }
+
+    /**
+     * 生成符合 EIP-712 规范的 JSON，可直接传入 {@code StructuredDataEncoder} 进行签名。
+     *
+     * <p>生成的 JSON 与 {@link #hashBatch} 计算的摘要必须完全一致（round-trip invariant）。</p>
+     */
+    public static String typedDataJsonBatch(long chainId, Address wallet,
+                                             BigInteger nonce, BigInteger deadline,
+                                             List<Call> calls) {
+        if (calls == null || calls.isEmpty()) {
+            throw new IllegalArgumentException("calls 不能为空");
+        }
+        ObjectMapper m = JsonCodec.objectMapper();
+        ObjectNode root = m.createObjectNode();
+
+        // types
+        ObjectNode types = root.putObject("types");
+        ArrayNode domainType = types.putArray("EIP712Domain");
+        addType(m, domainType, "name", "string");
+        addType(m, domainType, "version", "string");
+        addType(m, domainType, "chainId", "uint256");
+        addType(m, domainType, "verifyingContract", "address");
+
+        ArrayNode batchType = types.putArray("Batch");
+        addType(m, batchType, "wallet", "address");
+        addType(m, batchType, "nonce", "uint256");
+        addType(m, batchType, "deadline", "uint256");
+        addType(m, batchType, "calls", "Call[]");
+
+        ArrayNode callType = types.putArray("Call");
+        addType(m, callType, "target", "address");
+        addType(m, callType, "value", "uint256");
+        addType(m, callType, "data", "bytes");
+
+        root.put("primaryType", "Batch");
+
+        // domain
+        ObjectNode domain = root.putObject("domain");
+        domain.put("name", PolymarketContracts.DEPOSIT_WALLET_DOMAIN_NAME);
+        domain.put("version", PolymarketContracts.DEPOSIT_WALLET_DOMAIN_VERSION);
+        domain.put("chainId", chainId);
+        domain.put("verifyingContract", wallet.toLowerHex());
+
+        // message
+        ObjectNode message = root.putObject("message");
+        message.put("wallet", wallet.toLowerHex());
+        message.put("nonce", nonce.toString());
+        message.put("deadline", deadline.toString());
+        ArrayNode callsArr = message.putArray("calls");
+        HexFormat hf = HexFormat.of();
+        for (Call c : calls) {
+            ObjectNode co = m.createObjectNode();
+            co.put("target", c.target().toLowerHex());
+            co.put("value", c.value().toString());
+            co.put("data", "0x" + hf.formatHex(c.data()));
+            callsArr.add(co);
+        }
+        return JsonCodec.writeValue(m, root);
+    }
+
+    private static void addType(ObjectMapper m, ArrayNode arr, String name, String type) {
+        ObjectNode o = m.createObjectNode();
+        o.put("name", name);
+        o.put("type", type);
+        arr.add(o);
     }
 }
