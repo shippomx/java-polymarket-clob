@@ -110,9 +110,12 @@ public final class FullOnboardAndTradeExample {
 
         String rpcUrl = "https://polygon.drpc.org";
         String clobUrl = Optional.ofNullable(System.getenv("CLOB_API_URL")).orElse(DEFAULT_CLOB_URL);
-        String envApiKey = System.getenv("CLOB_API_KEY");
-        String envSecret = System.getenv("CLOB_SECRET");
-        String envPassphrase = System.getenv("CLOB_PASS_PHRASE");
+        // String envApiKey = System.getenv("CLOB_API_KEY");
+        // String envSecret = System.getenv("CLOB_SECRET");
+        // String envPassphrase = System.getenv("CLOB_PASS_PHRASE");
+        String envApiKey = "f04280f5-8f77-d4c6-4a26-b44e0b3a78ff";
+        String envSecret = "_QO5cL_YVvr-fJn3SlHwLozQHDySYgFnVC8H5JJCJ60=";
+        String envPassphrase = "2bf76ac5007da37b78b772e0e239acec5e6bab3115a8f7daa03a99272fea4e2f";
 
         Signer eoa = LocalSigner.fromPrivateKeyHex(pk);
         HttpClient http = HttpClient.newHttpClient();
@@ -226,10 +229,10 @@ public final class FullOnboardAndTradeExample {
         step(8, "Place test order (token=" + tokenIdStr + ")");
         BigInteger usdcBalance = reads.erc20BalanceOf(PolymarketContracts.USDC_E, wallet).get();
         System.out.println("    Deposit wallet USDC.e balance: " + usdcBalance);
-        // if (usdcBalance.compareTo(BigInteger.valueOf(1_000_000L)) < 0) {
-        //     System.out.println("    ⚠️  Wallet has < 1 USDC — order will likely be rejected by CLOB.");
-        //     System.out.println("       Send some USDC.e to " + wallet.toHex() + " and re-run.");
-        // }
+        if (usdcBalance.compareTo(BigInteger.valueOf(1_000_000L)) < 0) {
+            System.out.println("    ⚠️  Wallet has < 1 USDC — order will likely be rejected by CLOB.");
+            System.out.println("       Send some USDC.e to " + wallet.toHex() + " and re-run.");
+        }
 
         try (ClobClient base = ClobClient.builder()
                 .endpoint(URI.create(clobUrl))
