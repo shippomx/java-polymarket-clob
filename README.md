@@ -2,7 +2,7 @@
 
 [![Java](https://img.shields.io/badge/Java-17-orange.svg)](https://openjdk.org/projects/jdk/17/)
 [![Maven](https://img.shields.io/badge/build-maven-blue.svg)](https://maven.apache.org/)
-[![Status](https://img.shields.io/badge/status-2.0.0-green.svg)]()
+[![Status](https://img.shields.io/badge/status-2.1.0-green.svg)]()
 
 > ⚠️ **v2 已切换到 Deposit Wallet 流，与 v1 Safe 流不兼容。**
 > 升级路径见 `CHANGELOG.md`。
